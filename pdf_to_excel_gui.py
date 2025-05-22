@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import pdfplumber
@@ -26,16 +25,17 @@ def extract_data_from_pdf(pdf_path):
                 records.append(record)
                 record = {}
             parts = line.split()
-            if len(parts) >= 8:
+            if len(parts) >= 9:
                 record["Pos"] = parts[0]
                 record["PO No"] = parts[1]
                 record["SAP Order No"] = parts[2]
                 record["Part Number"] = parts[3]
-                record["Part Description"] = " ".join(parts[4:-4])
-                record["Quantity"] = parts[-4]
-                record["Country of Origin"] = parts[-3]
-                record["Ship Qty"] = parts[-2]
-                record["Unit Price"] = parts[-1]
+                record["Part Description"] = " ".join(parts[4:-5])
+                record["Quantity"] = parts[-5]
+                record["Country of Origin"] = parts[-4]
+                record["Ship Qty"] = parts[-3]
+                record["Unit Price"] = parts[-2]
+                record["Extended Price"] = parts[-1]
         elif model_pattern.match(line):
             parts = line.split()
             if len(parts) >= 6:
@@ -43,7 +43,7 @@ def extract_data_from_pdf(pdf_path):
                 record["HTS Code"] = parts[1]
                 record["HTS Description"] = " ".join(parts[2:-3])
                 record["Price UOM"] = parts[-3]
-                record["Extended Price"] = parts[-2]
+                record["Extended Price"] = parts[-2]  # backup in case missed before
                 eccn_match = eccn_pattern.search(line)
                 record["ECCN"] = eccn_match.group(0) if eccn_match else ""
 
