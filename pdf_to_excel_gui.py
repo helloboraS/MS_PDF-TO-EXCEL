@@ -16,7 +16,7 @@ def extract_data_from_pdf(pdf_path):
     record = {}
 
     pos_pattern = re.compile(r"^\d{2,3}\s+OT\d+")
-    model_pattern = re.compile(r"^803\d{6,}")
+    model_pattern = re.compile(r"^\d{4}$")
     eccn_pattern = re.compile(r"(EAR99|5A992\.c)")
 
     for line in lines:
@@ -25,32 +25,41 @@ def extract_data_from_pdf(pdf_path):
                 records.append(record)
                 record = {}
             parts = line.split()
-            if len(parts) >= 9:
-                record["Pos"] = parts[0]
+            if len(parts) >= 8:
                 record["PO No"] = parts[1]
                 record["SAP Order No"] = parts[2]
                 record["Part Number"] = parts[3]
-                record["Part Description"] = " ".join(parts[4:-5])
-                record["Quantity"] = parts[-5]
+                record["Part Description"] = " ".join(parts[4:-4])
                 record["Country of Origin"] = parts[-4]
                 record["Ship Qty"] = parts[-3]
                 record["Unit Price"] = parts[-2]
                 record["Extended Price"] = parts[-1]
         elif model_pattern.match(line):
             parts = line.split()
-            if len(parts) >= 6:
+            if len(parts) >= 5:
                 record["Model No"] = parts[0]
                 record["HTS Code"] = parts[1]
-                record["HTS Description"] = " ".join(parts[2:-3])
-                record["Price UOM"] = parts[-3]
-                record["Extended Price"] = parts[-2]  # backup in case missed before
+                record["HTS Description"] = " ".join(parts[2:-2])
+                record["Price UOM"] = parts[-2]
                 eccn_match = eccn_pattern.search(line)
                 record["ECCN"] = eccn_match.group(0) if eccn_match else ""
 
     if record:
         records.append(record)
 
-    return pd.DataFrame(records)
+    # 열 순서 지정
+    column_order = [
+        "PO No", "SAP Order No", "Part Number", "Part Description",
+        "Ship Qty", "Price UOM", "Unit Price", "Extended Price",
+        "Model No", "HTS Code", "Country of Origin", "HTS Description"
+    ]
+
+    df = pd.DataFrame(records)
+    for col in column_order:
+        if col not in df.columns:
+            df[col] = ""
+    df = df[column_order]
+    return df
 
 st.set_page_config(page_title="PDF 항목 추출기", layout="centered")
 st.title("📄 PDF → Excel 항목 추출기")
