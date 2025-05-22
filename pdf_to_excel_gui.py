@@ -7,44 +7,45 @@ import re
 
 def extract_data_from_pdf(pdf_path):
     records = []
+    current_record = {}
+
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
-            tables = page.extract_tables()
-            for table in tables:
-                for i, row in enumerate(table):
-                    clean_row = [cell.strip() if cell else "" for cell in row]
+            lines = page.extract_text().split("\n")
+            for line in lines:
+                # 기본 정보 라인: POS부터 시작하는 줄
+                if re.match(r"^\d{2,3}\s+OT", line):
+                    parts = line.split()
+                    current_record = {
+                        "PO No": parts[1],
+                        "SAP Order No": parts[2],
+                        "Part Number": parts[3],
+                        "Part Description": " ".join(parts[4:-5]),
+                        "Ship Qty": parts[-5],
+                        "Country of Origin": parts[-4],
+                        "Price UOM": parts[-3],
+                        "Unit Price": parts[-2],
+                        "Extended Price": parts[-1],
+                        "Model No": "",
+                        "HTS Code": "",
+                        "HTS Description": ""
+                    }
+                    records.append(current_record)
 
-                    # 기본 행: PO, Part, 가격정보 등 포함
-                    if clean_row and clean_row[0].isdigit() and len(clean_row) >= 15:
-                        record = {
-                            "PO No": clean_row[1],
-                            "SAP Order No": clean_row[2],
-                            "Part Number": clean_row[3],
-                            "Part Description": clean_row[4],
-                            "Ship Qty": clean_row[11],
-                            "Price UOM": clean_row[12],
-                            "Unit Price": clean_row[13],
-                            "Extended Price": clean_row[14],
-                            "Model No": "",
-                            "HTS Code": "",
-                            "Country of Origin": clean_row[10],
-                            "HTS Description": ""
-                        }
-                        records.append(record)
-
-                    # 다음 줄: Model No + HTS Code + Description
-                    elif clean_row and len(clean_row) >= 3:
-                        if re.fullmatch(r"\d{4}", clean_row[0]) and re.fullmatch(r"\d{8,10}", clean_row[1]):
-                            if records:
-                                records[-1]["Model No"] = clean_row[0]
-                                records[-1]["HTS Code"] = clean_row[1]
-                                records[-1]["HTS Description"] = clean_row[2]
+                # 세부 정보 라인: Model No, HTS Code 등
+                elif re.match(r"^\d{4}\s+\d{8,10}", line):
+                    parts = line.split()
+                    if len(parts) >= 3 and records:
+                        records[-1]["Model No"] = parts[0]
+                        records[-1]["HTS Code"] = parts[1]
+                        records[-1]["HTS Description"] = " ".join(parts[2:])
 
     column_order = [
         "PO No", "SAP Order No", "Part Number", "Part Description",
         "Ship Qty", "Price UOM", "Unit Price", "Extended Price",
         "Model No", "HTS Code", "Country of Origin", "HTS Description"
     ]
+
     df = pd.DataFrame(records)
     for col in column_order:
         if col not in df.columns:
