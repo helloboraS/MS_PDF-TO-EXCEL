@@ -13,27 +13,25 @@ def extract_format_a(pdf_path):
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
             for line in lines:
-                if re.match(r"^\d{2,3}\s+\S+-?\d*\s+\d{10}\s+\S+", line):
-                    parts = line.split()
-                    if len(parts) >= 12:
-                        current_record = {
-                            "PO No": parts[1],
-                            "SAP Order No": parts[2],
-                            "Part Number": parts[3],
-                            "Part Description": " ".join(parts[4:-6]),
-                            "Model No": parts[-6],
-                            "Country of Origin": parts[-5],
-                            "Ship Qty": parts[-4],
-                            "Price UOM": parts[-3],
-                            "Unit Price": parts[-2],
-                            "Extended Price": parts[-1],
-                            "HTS Code": "",
-                            "HTS Description": ""
-                        }
-                        records.append(current_record)
-                elif re.match(r"^\d{10}\s+\d{8,10}\s+", line):
-                    parts = line.split()
-                    if len(parts) >= 3 and records:
+                parts = line.split()
+                if len(parts) >= 12 and parts[2].isdigit() and parts[-4].isdigit():
+                    current_record = {
+                        "PO No": parts[1],
+                        "SAP Order No": parts[2],
+                        "Part Number": parts[3],
+                        "Part Description": " ".join(parts[4:-6]),
+                        "Model No": parts[-6],
+                        "Country of Origin": parts[-5],
+                        "Ship Qty": parts[-4],
+                        "Price UOM": parts[-3],
+                        "Unit Price": parts[-2],
+                        "Extended Price": parts[-1],
+                        "HTS Code": "",
+                        "HTS Description": ""
+                    }
+                    records.append(current_record)
+                elif len(parts) >= 3 and parts[0].isdigit() and parts[1].isdigit():
+                    if records:
                         records[-1]["HTS Code"] = parts[1]
                         records[-1]["HTS Description"] = " ".join(parts[2:])
 
@@ -54,24 +52,23 @@ def extract_format_b(pdf_path):
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
             for line in lines:
-                if re.match(r"^\d{6,}\s+\d+\s+\S+\s+\S+\s+\S+\s+\d+\s+[A-Z]{2}\s+\d+\s+\d+\s+EA\s+\d+", line):
-                    parts = line.split()
-                    if len(parts) >= 12:
-                        record = {
-                            "Invoice No.": parts[0],
-                            "Order No.": parts[1],
-                            "Delivery No.": parts[2],
-                            "Manufacturer Part No.": parts[3],
-                            "Model No": parts[4],
-                            "Microsoft Part No.": parts[5],
-                            "Country of Origin": parts[6],
-                            "Ship Qty": parts[7],
-                            "Unit Price": parts[8],
-                            "Price UOM": parts[9],
-                            "Extended Price": parts[10],
-                            "Part Description": ""
-                        }
-                        records.append(record)
+                parts = line.split()
+                if len(parts) >= 11 and parts[0].isdigit() and parts[-1].isdigit():
+                    record = {
+                        "Invoice No.": parts[0],
+                        "Order No.": parts[1],
+                        "Delivery No.": parts[2],
+                        "Manufacturer Part No.": parts[3],
+                        "Model No": parts[4],
+                        "Microsoft Part No.": parts[5],
+                        "Country of Origin": parts[6],
+                        "Ship Qty": parts[7],
+                        "Unit Price": parts[8],
+                        "Price UOM": parts[9],
+                        "Extended Price": parts[10],
+                        "Part Description": " ".join(parts[11:]) if len(parts) > 11 else ""
+                    }
+                    records.append(record)
     df = pd.DataFrame(records)
     column_order = [
         "Invoice No.", "Order No.", "Delivery No.",
