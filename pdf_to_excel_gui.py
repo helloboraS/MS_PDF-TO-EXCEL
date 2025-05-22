@@ -53,28 +53,29 @@ def extract_format_b(pdf_path):
             lines = page.extract_text().split("\n")
             for line in lines:
                 parts = line.split()
-                if len(parts) >= 11 and parts[0].isdigit() and parts[-1].isdigit():
+                if len(parts) >= 13 and parts[0].isdigit():
                     record = {
-                        "Invoice No.": parts[0],
+                        "Inv.Item": parts[0],
                         "Order No.": parts[1],
                         "Delivery No.": parts[2],
-                        "Manufacturer Part No.": parts[3],
-                        "Model No": parts[4],
-                        "Microsoft Part No.": parts[5],
-                        "Country of Origin": parts[6],
-                        "Ship Qty": parts[7],
-                        "Unit Price": parts[8],
-                        "Price UOM": parts[9],
-                        "Extended Price": parts[10],
-                        "Part Description": " ".join(parts[11:]) if len(parts) > 11 else ""
+                        "HTS Code": parts[3],
+                        "Microsoft Part No.": parts[4],
+                        "Manufacturer Part No.": parts[5],
+                        "Model No": parts[6],
+                        "Part Description": " ".join(parts[7:-5]),
+                        "Ship Qty": parts[-5],
+                        "Price UOM": parts[-4],
+                        "Unit Price": parts[-3],
+                        "Extended Price": parts[-2],
+                        "Country of Origin": parts[-1]
                     }
                     records.append(record)
     df = pd.DataFrame(records)
     column_order = [
-        "Invoice No.", "Order No.", "Delivery No.",
-        "Manufacturer Part No.", "Model No", "Microsoft Part No.",
-        "Country of Origin", "Ship Qty", "Unit Price", "Price UOM",
-        "Extended Price", "Part Description"
+        "Inv.Item", "Order No.", "Delivery No.", "HTS Code",
+        "Microsoft Part No.", "Manufacturer Part No.", "Model No",
+        "Part Description", "Ship Qty", "Price UOM",
+        "Unit Price", "Extended Price", "Country of Origin"
     ]
     for col in column_order:
         if col not in df.columns:
