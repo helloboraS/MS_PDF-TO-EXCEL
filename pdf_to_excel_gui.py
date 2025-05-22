@@ -62,12 +62,12 @@ def extract_format_b(pdf_path):
                         "Microsoft Part No.": parts[4],
                         "Manufacturer Part No.": parts[5],
                         "Model No": parts[6],
-                        "Part Description": " ".join(parts[7:-5]),
-                        "Ship Qty": parts[-5],
-                        "Price UOM": parts[-4],
-                        "Unit Price": parts[-3],
-                        "Extended Price": parts[-2],
-                        "Country of Origin": parts[-1]
+                        "Part Description": " ".join(parts[7:-6]),
+                        "Ship Qty": parts[-6],
+                        "Price UOM": parts[-5],
+                        "Unit Price": parts[-4],
+                        "Extended Price": parts[-3],
+                        "Country of Origin": parts[-2]
                     }
                     records.append(record)
     df = pd.DataFrame(records)
@@ -126,24 +126,23 @@ with tab1:
 with tab2:
     uploaded_files_b = st.file_uploader("[MS1279-PAYMENTS] PDF 파일을 하나 이상 업로드하세요", type=["pdf"], accept_multiple_files=True, key="b")
     if uploaded_files_b:
-        with st.spinner("PDF에서 항목 추출 중..."):
-            all_data = {}
-            try:
-                for uploaded_file in uploaded_files_b:
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-                        tmp_file.write(uploaded_file.read())
-                        temp_pdf_path = tmp_file.name
+        all_data = {}
+        st.subheader("🔍 미리보기 결과")
+        try:
+            for uploaded_file in uploaded_files_b:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+                    tmp_file.write(uploaded_file.read())
+                    temp_pdf_path = tmp_file.name
 
-                    df = extract_format_b(temp_pdf_path)
-                    os.remove(temp_pdf_path)
-                    sheet_name = os.path.splitext(uploaded_file.name)[0][:31]
-                    all_data[sheet_name] = df
+                df = extract_format_b(temp_pdf_path)
+                os.remove(temp_pdf_path)
+                sheet_name = os.path.splitext(uploaded_file.name)[0][:31]
+                all_data[sheet_name] = df
 
-                st.success("✅ MS1279-PAYMENTS PDF 추출 완료")
-                for name, df in all_data.items():
-                    st.subheader(f"📄 {name}")
-                    st.dataframe(df)
+                st.write(f"📄 {sheet_name}")
+                st.dataframe(df)
 
+            if all_data:
                 excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
                 with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
                     for name, df in all_data.items():
@@ -156,5 +155,5 @@ with tab2:
                         file_name="ms1279_payments_data.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     )
-            except Exception as e:
-                st.error(f"❌ 오류 발생: {e}")
+        except Exception as e:
+            st.error(f"❌ 오류 발생: {e}")
