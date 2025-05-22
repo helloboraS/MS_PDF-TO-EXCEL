@@ -20,23 +20,22 @@ def extract_data_from_pdf(pdf_path):
                         "PO No": parts[1],
                         "SAP Order No": parts[2],
                         "Part Number": parts[3],
-                        "Part Description": " ".join(parts[4:-5]),
-                        "Country of Origin": parts[-5],  # 위치 수정
-                        "Ship Qty": parts[-4],            # 위치 수정
+                        "Part Description": " ".join(parts[4:-6]),
+                        "Model No": parts[-6],
+                        "Country of Origin": parts[-5],
+                        "Ship Qty": parts[-4],
                         "Price UOM": parts[-3],
                         "Unit Price": parts[-2],
                         "Extended Price": parts[-1],
-                        "Model No": "",
                         "HTS Code": "",
                         "HTS Description": ""
                     }
                     records.append(current_record)
 
-                # 세부 정보 라인: Model No, HTS Code 등
-                elif re.match(r"^\d{4}\s+\d{8,10}", line):
+                # 세부 정보 라인: HTS Code + HTS Description 줄
+                elif re.match(r"^\d{10}\s+\d{8,10}\s+", line):
                     parts = line.split()
                     if len(parts) >= 3 and records:
-                        records[-1]["Model No"] = parts[0]
                         records[-1]["HTS Code"] = parts[1]
                         records[-1]["HTS Description"] = " ".join(parts[2:])
 
