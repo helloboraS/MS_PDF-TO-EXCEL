@@ -13,7 +13,6 @@ def extract_data_from_pdf(pdf_path):
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
             for line in lines:
-                # 기본 정보 라인: POS부터 시작하는 줄
                 if re.match(r"^\d{2,3}\s+OT", line):
                     parts = line.split()
                     current_record = {
@@ -32,7 +31,6 @@ def extract_data_from_pdf(pdf_path):
                     }
                     records.append(current_record)
 
-                # 세부 정보 라인: HTS Code + HTS Description 줄
                 elif re.match(r"^\d{10}\s+\d{8,10}\s+", line):
                     parts = line.split()
                     if len(parts) >= 3 and records:
@@ -55,28 +53,37 @@ def extract_data_from_pdf(pdf_path):
 st.set_page_config(page_title="PDF 항목 추출기", layout="centered")
 st.title("📄 PDF → Excel 항목 추출기")
 
-uploaded_file = st.file_uploader("PDF 파일을 업로드하세요", type=["pdf"])
+uploaded_files = st.file_uploader("PDF 파일을 하나 이상 업로드하세요", type=["pdf"], accept_multiple_files=True)
 
-if uploaded_file:
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-        tmp_file.write(uploaded_file.read())
-        temp_pdf_path = tmp_file.name
-
+if uploaded_files:
     with st.spinner("PDF에서 항목 추출 중..."):
+        all_data = {}
         try:
-            df = extract_data_from_pdf(temp_pdf_path)
-            os.remove(temp_pdf_path)
+            for uploaded_file in uploaded_files:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+                    tmp_file.write(uploaded_file.read())
+                    temp_pdf_path = tmp_file.name
 
-            st.success("✅ 추출 완료! 아래에서 미리보기를 확인하세요.")
-            st.dataframe(df)
+                df = extract_data_from_pdf(temp_pdf_path)
+                os.remove(temp_pdf_path)
+                sheet_name = os.path.splitext(uploaded_file.name)[0][:31]  # Excel 시트명 제한 고려
+                all_data[sheet_name] = df
+
+            st.success("✅ 모든 PDF에서 추출 완료! 아래에서 미리보기를 확인하세요.")
+            for name, df in all_data.items():
+                st.subheader(f"📄 {name}")
+                st.dataframe(df)
 
             excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
-            df.to_excel(excel_file.name, index=False)
+            with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
+                for name, df in all_data.items():
+                    df.to_excel(writer, sheet_name=name, index=False)
+
             with open(excel_file.name, "rb") as f:
                 st.download_button(
-                    label="📥 엑셀 파일 다운로드",
+                    label="📥 모든 시트 포함 엑셀 파일 다운로드",
                     data=f,
-                    file_name="extracted_data.xlsx",
+                    file_name="multiple_extracted_data.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
         except Exception as e:
