@@ -51,7 +51,7 @@ def extract_format_b(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
-            for line in lines:
+            for idx, line in enumerate(lines):
                 parts = line.split()
                 if len(parts) >= 13 and parts[0].isdigit():
                     record = {
@@ -70,6 +70,7 @@ def extract_format_b(pdf_path):
                         "Country of Origin": parts[-2]
                     }
                     records.append(record)
+
     df = pd.DataFrame(records)
     column_order = [
         "Inv.Item", "Order No.", "Delivery No.", "HTS Code",
@@ -82,6 +83,7 @@ def extract_format_b(pdf_path):
             df[col] = ""
     return df[column_order]
 
+# Streamlit UI 구성
 st.set_page_config(page_title="PDF 항목 추출기", layout="wide")
 st.title("📄 PDF → Excel 항목 추출기")
 
