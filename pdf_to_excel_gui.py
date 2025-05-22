@@ -21,8 +21,8 @@ def extract_data_from_pdf(pdf_path):
                         "SAP Order No": parts[2],
                         "Part Number": parts[3],
                         "Part Description": " ".join(parts[4:-5]),
-                        "Ship Qty": parts[-5],
-                        "Country of Origin": parts[-4],
+                        "Country of Origin": parts[-5],  # 위치 수정
+                        "Ship Qty": parts[-4],            # 위치 수정
                         "Price UOM": parts[-3],
                         "Unit Price": parts[-2],
                         "Extended Price": parts[-1],
