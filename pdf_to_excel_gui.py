@@ -3,6 +3,7 @@ import pandas as pd
 import pdfplumber
 import tempfile
 import os
+import re
 
 def extract_data_from_pdf(pdf_path):
     records = []
@@ -10,33 +11,35 @@ def extract_data_from_pdf(pdf_path):
         for page in pdf.pages:
             tables = page.extract_tables()
             for table in tables:
-                for row in table:
-                    # Skip invalid or header rows
-                    if row and row[0] and row[0].isdigit():
-                        # Clean row and ensure it's the right length
-                        clean_row = [cell.strip() if cell else "" for cell in row]
-                        if len(clean_row) >= 15:
-                            record = {
-                                "PO No": clean_row[1],
-                                "SAP Order No": clean_row[2],
-                                "Part Number": clean_row[3],
-                                "Part Description": clean_row[4],
-                                "Ship Qty": clean_row[11],
-                                "Price UOM": clean_row[12],
-                                "Unit Price": clean_row[13],
-                                "Extended Price": clean_row[14],
-                                "Model No": "",
-                                "HTS Code": "",
-                                "Country of Origin": clean_row[10],
-                                "HTS Description": ""
-                            }
-                            records.append(record)
-                    elif row and len(row) >= 6 and row[0].startswith("8"):
-                        if records:
-                            records[-1]["Model No"] = row[0]
-                            records[-1]["HTS Code"] = row[1]
-                            records[-1]["HTS Description"] = row[2]
-    
+                for i, row in enumerate(table):
+                    clean_row = [cell.strip() if cell else "" for cell in row]
+
+                    # 기본 행: PO, Part, 가격정보 등 포함
+                    if clean_row and clean_row[0].isdigit() and len(clean_row) >= 15:
+                        record = {
+                            "PO No": clean_row[1],
+                            "SAP Order No": clean_row[2],
+                            "Part Number": clean_row[3],
+                            "Part Description": clean_row[4],
+                            "Ship Qty": clean_row[11],
+                            "Price UOM": clean_row[12],
+                            "Unit Price": clean_row[13],
+                            "Extended Price": clean_row[14],
+                            "Model No": "",
+                            "HTS Code": "",
+                            "Country of Origin": clean_row[10],
+                            "HTS Description": ""
+                        }
+                        records.append(record)
+
+                    # 다음 줄: Model No + HTS Code + Description
+                    elif clean_row and len(clean_row) >= 3:
+                        if re.fullmatch(r"\d{4}", clean_row[0]) and re.fullmatch(r"\d{8,10}", clean_row[1]):
+                            if records:
+                                records[-1]["Model No"] = clean_row[0]
+                                records[-1]["HTS Code"] = clean_row[1]
+                                records[-1]["HTS Description"] = clean_row[2]
+
     column_order = [
         "PO No", "SAP Order No", "Part Number", "Part Description",
         "Ship Qty", "Price UOM", "Unit Price", "Extended Price",
