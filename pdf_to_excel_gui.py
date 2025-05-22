@@ -13,23 +13,25 @@ def extract_data_from_pdf(pdf_path):
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
             for line in lines:
-                if re.match(r"^\d{2,3}\s+OT", line):
+                # 더 유연하게: Pos + PO No + SAP Order No + Part No
+                if re.match(r"^\d{2,3}\s+\S+-?\d*\s+\d{10}\s+\S+", line):
                     parts = line.split()
-                    current_record = {
-                        "PO No": parts[1],
-                        "SAP Order No": parts[2],
-                        "Part Number": parts[3],
-                        "Part Description": " ".join(parts[4:-6]),
-                        "Model No": parts[-6],
-                        "Country of Origin": parts[-5],
-                        "Ship Qty": parts[-4],
-                        "Price UOM": parts[-3],
-                        "Unit Price": parts[-2],
-                        "Extended Price": parts[-1],
-                        "HTS Code": "",
-                        "HTS Description": ""
-                    }
-                    records.append(current_record)
+                    if len(parts) >= 12:
+                        current_record = {
+                            "PO No": parts[1],
+                            "SAP Order No": parts[2],
+                            "Part Number": parts[3],
+                            "Part Description": " ".join(parts[4:-6]),
+                            "Model No": parts[-6],
+                            "Country of Origin": parts[-5],
+                            "Ship Qty": parts[-4],
+                            "Price UOM": parts[-3],
+                            "Unit Price": parts[-2],
+                            "Extended Price": parts[-1],
+                            "HTS Code": "",
+                            "HTS Description": ""
+                        }
+                        records.append(current_record)
 
                 elif re.match(r"^\d{10}\s+\d{8,10}\s+", line):
                     parts = line.split()
