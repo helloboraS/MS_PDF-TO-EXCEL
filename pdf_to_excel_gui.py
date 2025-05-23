@@ -51,31 +51,36 @@ def extract_format_b(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
-            for i in range(len(lines) - 2):
-                try:
-                    line = lines[i].strip()
-                    model_line = lines[i + 1].strip()
-                    desc_line = lines[i + 2].strip()
-                    parts = line.split()
-                    model_parts = model_line.split()
+            i = 0
+            while i < len(lines) - 2:
+                line = lines[i].strip()
+                model_line = lines[i + 1].strip()
+                desc_line = lines[i + 2].strip()
 
-                    if len(parts) >= 12:
+                parts = line.split()
+                model_parts = model_line.split()
+
+                if len(parts) >= 10:
+                    try:
                         record = {
-                            "Delivery No.": parts[1],
-                            "Manufacturer Part No.": parts[2],
-                            "Model No": model_parts[0] if model_parts else "",
-                            "Microsoft Part No.": parts[3],
-                            "HTS Code": parts[5],
-                            "Country of Origin": parts[6],
-                            "Ship Qty": parts[7],
-                            "Unit Price": parts[8],
-                            "Price UOM": parts[9],
-                            "Extended Price": parts[10],
+                            "Delivery No.": parts[1] if len(parts) > 1 else "",
+                            "Manufacturer Part No.": parts[2] if len(parts) > 2 else "",
+                            "Model No": model_parts[0] if model_parts else "NA",
+                            "Microsoft Part No.": parts[3] if len(parts) > 3 else "",
+                            "HTS Code": parts[4] if len(parts) > 4 else "",
+                            "Country of Origin": parts[5] if len(parts) > 5 else "",
+                            "Ship Qty": parts[6] if len(parts) > 6 else "",
+                            "Unit Price": parts[7] if len(parts) > 7 else "",
+                            "Price UOM": parts[8] if len(parts) > 8 else "",
+                            "Extended Price": parts[9] if len(parts) > 9 else "",
                             "Part Description": desc_line
                         }
                         records.append(record)
-                except Exception:
-                    continue
+                        i += 3
+                    except Exception:
+                        i += 1
+                else:
+                    i += 1
 
     df = pd.DataFrame(records)
     column_order = [
