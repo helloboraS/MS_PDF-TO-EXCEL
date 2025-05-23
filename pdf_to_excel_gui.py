@@ -12,7 +12,6 @@ def extract_format_a(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
-
             for line in lines:
                 parts = line.split()
                 if len(parts) >= 12 and parts[2].isdigit() and parts[-4].isdigit():
@@ -51,8 +50,9 @@ def extract_format_b(pdf_path):
     records = []
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
-            lines = page.extract_text().split("\n")
-
+            lines = page.extract_text().split("
+")
+            st.write(lines)  # ✅ 추출 라인 확인용 출력
             i = 0
             while i < len(lines) - 2:
                 line = lines[i].strip()
@@ -62,7 +62,7 @@ def extract_format_b(pdf_path):
                 parts = line.split()
                 model_parts = model_line.split()
 
-                if len(parts) >= 12 and parts[0] == parts[1]:
+                if len(parts) >= 6:  # ✅ 조건 완화하여 추출 여부 확인
                     try:
                         record = {
                             "Delivery No.": parts[2] if len(parts) > 2 else "",
