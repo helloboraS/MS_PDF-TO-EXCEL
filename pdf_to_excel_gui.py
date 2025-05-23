@@ -49,37 +49,26 @@ def extract_format_b(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
-            i = 0
-            while i < len(lines) - 1:
-                line1 = lines[i].strip()
-                line2 = lines[i + 1].strip()
-                parts1 = line1.split()
-                parts2 = line2.split()
-                if (
-                    len(parts1) >= 11 and len(parts2) >= 3 and
-                    parts1[0].isdigit() and parts1[1].isdigit() and
-                    parts2[0] == parts1[0]
-                ):
-                    manu_part_no = " ".join(parts1[2:len(parts1)-8])
-                    desc_raw = " ".join(parts2[3:])
-                    desc_clean = desc_raw.replace("NEW NLR", "").strip()
-                    record = {
-                        "Delivery No.": parts2[1],
-                        "Manufacturer Part No.": manu_part_no,
-                        "Model No": parts2[2],
-                        "Microsoft Part No.": parts1[-8],
-                        "HTS Code": parts1[-6],
-                        "Country of Origin": parts1[-5],
-                        "Ship Qty": parts1[-4],
-                        "Unit Price": parts1[-3],
-                        "Price UOM": parts1[-2],
-                        "Extended Price": parts1[-1],
-                        "Part Description": desc_clean
-                    }
-                    records.append(record)
-                    i += 2
-                else:
-                    i += 1
+            for line in lines:
+                parts = line.strip().split()
+                if len(parts) >= 11 and parts[0].isdigit() and parts[1].isdigit():
+                    try:
+                        record = {
+                            "Delivery No.": parts[1],
+                            "Manufacturer Part No.": parts[2],
+                            "Model No": "NA",
+                            "Microsoft Part No.": parts[3],
+                            "HTS Code": parts[5],
+                            "Country of Origin": parts[6],
+                            "Ship Qty": parts[7],
+                            "Unit Price": parts[8],
+                            "Price UOM": parts[9],
+                            "Extended Price": parts[10],
+                            "Part Description": " ".join(parts[11:]).replace("NEW NLR", "").strip()
+                        }
+                        records.append(record)
+                    except Exception:
+                        continue
     df = pd.DataFrame(records)
     column_order = [
         "Delivery No.", "Manufacturer Part No.", "Model No",
