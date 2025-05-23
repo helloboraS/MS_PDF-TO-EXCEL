@@ -52,9 +52,7 @@ def extract_format_b(pdf_path):
     records = []
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
-            lines = page.extract_text().split("\n")
-  # ✅ 올바르게 줄바꿈 적용
-            
+            lines = page.extract_text().split("\n")  # ✅ 여기 줄 완전히 수정됨
             i = 0
             while i < len(lines) - 2:
                 line = lines[i].strip()
@@ -64,7 +62,7 @@ def extract_format_b(pdf_path):
                 parts = line.split()
                 model_parts = model_line.split()
 
-                if len(parts) >= 6:
+                if len(parts) >= 12 and parts[0] == parts[1]:
                     try:
                         record = {
                             "Delivery No.": parts[2] if len(parts) > 2 else "",
