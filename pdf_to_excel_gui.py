@@ -165,8 +165,30 @@ with tab2:
                     for name, df in all_data.items():
                         df.to_excel(writer, sheet_name=name, index=False)
 
+                    # 필터링된 요약 시트 예시
+                    merged_df = pd.concat(all_data.values(), ignore_index=True)
+                    filtered_df = pd.DataFrame({
+    "HS CODE": merged_df["HTS Code"],
+    "DESC + ORIGIN": merged_df.apply(
+        lambda row: row["Part Description"] +
+                    (" MODEL: " + row["Model No"] if row["Model No"] != "NA" else "") +
+                    " ORIGIN: " + row["Country of Origin"], axis=1),
+    "PART NO.": "PART NO: " + merged_df["Microsoft Part No."] + " (" + merged_df["Manufacturer Part No."] + ")",
+    "Q'TY": merged_df["Ship Qty"],
+    "UOM": merged_df["Price UOM"],
+    "UNIT PRICE": merged_df["Unit Price"],
+    "TOTAL AMOUNT": merged_df["Extended Price"],
+    "PART NO. FULL": merged_df["Microsoft Part No."] + " (" + merged_df["Manufacturer Part No."] + ")"
+})
+                    filtered_df.to_excel(writer, sheet_name="신고서용", index=False)
+
                 with open(excel_file.name, "rb") as f:
                     st.download_button(
+                        label="📥 MS1279-PAYMENTS 엑셀 다운로드",
+                        data=f,
+                        file_name="ms1279_payments_data.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
                         label="📥 MS1279-PAYMENTS 엑셀 다운로드",
                         data=f,
                         file_name="ms1279_payments_data.xlsx",
