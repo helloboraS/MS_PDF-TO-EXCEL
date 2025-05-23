@@ -52,7 +52,7 @@ def extract_format_b(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
-
+            
             i = 0
             while i < len(lines) - 2:
                 line = lines[i].strip()
@@ -61,9 +61,8 @@ def extract_format_b(pdf_path):
 
                 parts = line.split()
 
-                # Expecting structure like:
-                # 6001052531 OB46941 NA MSF-075029 8471702020 CN 4 487091 EA 1948364
-                if len(parts) >= 11:
+                # 필수 항목: Delivery No.는 숫자, 최소 길이 만족
+                if len(parts) >= 11 and parts[0].isdigit() and parts[6].isdigit():
                     try:
                         record = {
                             "Delivery No.": parts[0],
