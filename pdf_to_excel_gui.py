@@ -12,7 +12,6 @@ def extract_format_a(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
-
             for line in lines:
                 parts = line.split()
                 if len(parts) >= 12 and parts[2].isdigit() and parts[-4].isdigit():
@@ -52,7 +51,6 @@ def extract_format_b(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
-            
             i = 0
             while i < len(lines) - 2:
                 line = lines[i].strip()
@@ -61,8 +59,12 @@ def extract_format_b(pdf_path):
 
                 parts = line.split()
 
-                # 필수 항목: Delivery No.는 숫자, 최소 길이 만족
-                if len(parts) >= 11 and parts[0].isdigit() and parts[6].isdigit():
+                # 정확히 11개 이상 + Delivery No.가 숫자이고 Microsoft Part No. 형식 포함
+                if (
+                    len(parts) >= 11
+                    and parts[0].isdigit()
+                    and re.match(r"[A-Z0-9\-]+", parts[3])
+                ):
                     try:
                         record = {
                             "Delivery No.": parts[0],
