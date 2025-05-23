@@ -55,37 +55,34 @@ def extract_format_b(pdf_path):
             lines = page.extract_text().split("\n")
             st.write("📄 추출된 줄:", lines)
             i = 0
-            while i < len(lines) - 2:
-                line = lines[i].strip()
-                model_line = lines[i + 1].strip()
-                desc_line = lines[i + 2].strip()
+            while i < len(lines) - 1:
+                line1 = lines[i].strip()
+                line2 = lines[i + 1].strip()
+                parts1 = line1.split()
+                parts2 = line2.split()
 
-                parts = line.split()
-
-                # 정확히 11개 이상 + Delivery No.가 숫자이고 Microsoft Part No. 형식 포함
+                # 1행: 1 6001052531 0B46941 MSF-075029 NOCLASS 8471702020 CN 4 487091 EA 1948364
+                # 2행: 1 8500982837 NA Western Digital-HDD,3.5 IN,26.
                 if (
-                    len(parts) >= 11
-                    and parts[0].isdigit()
-                    and re.match(r"[A-Z0-9\-]+", parts[3])
+                    len(parts1) >= 11 and len(parts2) >= 4 and
+                    parts1[0].isdigit() and parts1[1].isdigit() and
+                    parts2[0] == parts1[0] and parts2[1].isdigit()
                 ):
-                    try:
-                        record = {
-                            "Delivery No.": parts[0],
-                            "Manufacturer Part No.": parts[1],
-                            "Model No": parts[2],
-                            "Microsoft Part No.": parts[3],
-                            "HTS Code": parts[4],
-                            "Country of Origin": parts[5],
-                            "Ship Qty": parts[6],
-                            "Unit Price": parts[7],
-                            "Price UOM": parts[8],
-                            "Extended Price": parts[9],
-                            "Part Description": desc_line
-                        }
-                        records.append(record)
-                        i += 3
-                    except Exception:
-                        i += 1
+                    record = {
+                        "Delivery No.": parts2[1],
+                        "Manufacturer Part No.": parts1[2],
+                        "Model No": parts2[2],
+                        "Microsoft Part No.": parts1[3],
+                        "HTS Code": parts1[5],
+                        "Country of Origin": parts1[6],
+                        "Ship Qty": parts1[7],
+                        "Unit Price": parts1[8],
+                        "Price UOM": parts1[9],
+                        "Extended Price": parts1[10],
+                        "Part Description": " ".join(parts2[3:])
+                    }
+                    records.append(record)
+                    i += 2
                 else:
                     i += 1
 
