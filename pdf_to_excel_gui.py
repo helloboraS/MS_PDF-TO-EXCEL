@@ -52,26 +52,30 @@ def extract_format_b(pdf_path):
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
             for i in range(len(lines) - 2):
-                line = lines[i].strip()
-                model_line = lines[i + 1].strip()
-                desc_line = lines[i + 2].strip()
-                if re.match(r"^\d+\s+\d{10}\s+\S+\s+\S+\s+\S+\s+\d+\s+[A-Z]{2}\s+\d+\s+\d+\s+EA\s+\d+$", line):
+                try:
+                    line = lines[i].strip()
+                    model_line = lines[i + 1].strip()
+                    desc_line = lines[i + 2].strip()
                     parts = line.split()
                     model_parts = model_line.split()
-                    record = {
-                        "Delivery No.": parts[1],
-                        "Manufacturer Part No.": parts[2],
-                        "Model No": model_parts[0] if model_parts else "",
-                        "Microsoft Part No.": parts[3],
-                        "HTS Code": parts[6],  # 원래 Country of Origin 값
-                        "Country of Origin": parts[7],  # 원래 Ship Qty 값
-                        "Ship Qty": parts[8],  # 원래 Unit Price 값
-                        "Unit Price": parts[9],
-                        "Price UOM": parts[10],
-                        "Extended Price": parts[11],
-                        "Part Description": desc_line
-                    }
-                    records.append(record)
+
+                    if len(parts) >= 12:
+                        record = {
+                            "Delivery No.": parts[1],
+                            "Manufacturer Part No.": parts[2],
+                            "Model No": model_parts[0] if model_parts else "",
+                            "Microsoft Part No.": parts[3],
+                            "HTS Code": parts[6],
+                            "Country of Origin": parts[7],
+                            "Ship Qty": parts[8],
+                            "Unit Price": parts[9],
+                            "Price UOM": parts[10],
+                            "Extended Price": parts[11],
+                            "Part Description": desc_line
+                        }
+                        records.append(record)
+                except Exception:
+                    continue
 
     df = pd.DataFrame(records)
     column_order = [
@@ -85,7 +89,7 @@ def extract_format_b(pdf_path):
             df[col] = ""
     return df[column_order]
 
-# Streamlit 앱 UI
+# Streamlit UI 구성
 st.set_page_config(page_title="PDF 항목 추출기", layout="wide")
 st.title("📄 PDF → Excel 항목 추출기")
 
