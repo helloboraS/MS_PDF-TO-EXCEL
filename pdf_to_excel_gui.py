@@ -51,23 +51,25 @@ def extract_format_b(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
-            for i in range(len(lines) - 1):
+            for i in range(len(lines) - 2):
                 line = lines[i].strip()
-                next_line = lines[i + 1].strip()
+                model_line = lines[i + 1].strip()
+                desc_line = lines[i + 2].strip()
                 if re.match(r"^\d+\s+\d{10}\s+\S+\s+\S+\s+\S+\s+\d+\s+[A-Z]{2}\s+\d+\s+\d+\s+EA\s+\d+$", line):
                     parts = line.split()
+                    model_parts = model_line.split()
                     record = {
                         "Delivery No.": parts[1],
                         "Manufacturer Part No.": parts[2],
-                        "Model No": parts[3],
-                        "Microsoft Part No.": parts[4],
-                        "HTS Code": parts[5],
-                        "Country of Origin": parts[6],
-                        "Ship Qty": parts[7],
-                        "Unit Price": parts[8],
-                        "Price UOM": parts[9],
+                        "Model No": model_parts[0] if model_parts else "",
+                        "Microsoft Part No.": parts[3],
+                        "HTS Code": parts[4],
+                        "Country of Origin": parts[5],
+                        "Ship Qty": parts[6],
+                        "Unit Price": parts[7],
+                        "Price UOM": parts[8],
                         "Extended Price": parts[10],
-                        "Part Description": next_line
+                        "Part Description": desc_line
                     }
                     records.append(record)
 
