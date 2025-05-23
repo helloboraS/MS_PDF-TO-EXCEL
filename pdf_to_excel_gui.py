@@ -50,7 +50,8 @@ def extract_format_b(pdf_path):
     records = []
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
-            lines = page.extract_text().split("\n")
+            lines = page.extract_text().split("
+")
             i = 0
             while i < len(lines) - 2:
                 line = lines[i].strip()
@@ -60,19 +61,19 @@ def extract_format_b(pdf_path):
                 parts = line.split()
                 model_parts = model_line.split()
 
-                if len(parts) >= 10:
+                if len(parts) >= 12 and parts[0] == parts[1]:
                     try:
                         record = {
-                            "Delivery No.": parts[1] if len(parts) > 1 else "",
-                            "Manufacturer Part No.": parts[2] if len(parts) > 2 else "",
+                            "Delivery No.": parts[2] if len(parts) > 2 else "",
+                            "Manufacturer Part No.": parts[3] if len(parts) > 3 else "",
                             "Model No": model_parts[0] if model_parts else "NA",
-                            "Microsoft Part No.": parts[3] if len(parts) > 3 else "",
-                            "HTS Code": parts[4] if len(parts) > 4 else "",
-                            "Country of Origin": parts[5] if len(parts) > 5 else "",
-                            "Ship Qty": parts[6] if len(parts) > 6 else "",
-                            "Unit Price": parts[7] if len(parts) > 7 else "",
-                            "Price UOM": parts[8] if len(parts) > 8 else "",
-                            "Extended Price": parts[9] if len(parts) > 9 else "",
+                            "Microsoft Part No.": parts[4] if len(parts) > 4 else "",
+                            "HTS Code": parts[5] if len(parts) > 5 else "",
+                            "Country of Origin": parts[6] if len(parts) > 6 else "",
+                            "Ship Qty": parts[7] if len(parts) > 7 else "",
+                            "Unit Price": parts[8] if len(parts) > 8 else "",
+                            "Price UOM": parts[9] if len(parts) > 9 else "",
+                            "Extended Price": parts[10] if len(parts) > 10 else "",
                             "Part Description": desc_line
                         }
                         records.append(record)
