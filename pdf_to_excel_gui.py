@@ -51,8 +51,8 @@ def extract_format_b(pdf_path):
     records = []
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
-            lines = page.extract_text().split("
-")  # ✅ 올바르게 줄바꿈 적용
+            lines = page.extract_text().split("\n")
+  # ✅ 올바르게 줄바꿈 적용
             
             i = 0
             while i < len(lines) - 2:
