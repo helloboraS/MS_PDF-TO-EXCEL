@@ -50,8 +50,8 @@ def extract_format_b(pdf_path):
     records = []
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
-            lines = page.extract_text().split("
-")
+            lines = page.extract_text().split("\n")
+
             st.write(lines)  # ✅ 추출 라인 확인용 출력
             i = 0
             while i < len(lines) - 2:
