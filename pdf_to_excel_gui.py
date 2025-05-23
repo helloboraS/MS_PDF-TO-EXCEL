@@ -56,9 +56,9 @@ def extract_format_b(pdf_path):
                 parts1 = line1.split()
                 parts2 = line2.split()
                 if (
-                    len(parts1) >= 11 and len(parts2) >= 4 and
+                    len(parts1) >= 11 and len(parts2) >= 3 and
                     parts1[0].isdigit() and parts1[1].isdigit() and
-                    parts2[0] == parts1[0] and parts2[1].isdigit()
+                    parts2[0] == parts1[0]
                 ):
                     manu_part_no = " ".join(parts1[2:len(parts1)-8])
                     desc_raw = " ".join(parts2[3:])
