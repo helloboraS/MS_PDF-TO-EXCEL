@@ -51,39 +51,44 @@ def extract_format_b(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
-            for idx, line in enumerate(lines):
-                parts = line.split()
-                if len(parts) >= 13 and parts[0].isdigit():
+            for i in range(len(lines) - 1):
+                parts = lines[i].split()
+                next_parts = lines[i + 1].split()
+                if (
+                    len(parts) >= 12
+                    and parts[0].isdigit()
+                    and parts[1].isdigit()
+                    and parts[10] == "EA"
+                    and parts[11].isdigit()
+                ):
                     record = {
-                        "Inv.Item": parts[0],
-                        "Order No.": parts[1],
                         "Delivery No.": parts[2],
-                        "HTS Code": parts[3],
-                        "Microsoft Part No.": parts[4],
-                        "Manufacturer Part No.": parts[5],
-                        "Model No": parts[6],
-                        "Part Description": " ".join(parts[7:-6]),
-                        "Ship Qty": parts[-6],
-                        "Price UOM": parts[-5],
-                        "Unit Price": parts[-4],
-                        "Extended Price": parts[-3],
-                        "Country of Origin": parts[-2]
+                        "Manufacturer Part No.": parts[3],
+                        "Model No": parts[4],
+                        "Microsoft Part No.": parts[5],
+                        "HTS Code": parts[6],
+                        "Country of Origin": parts[7],
+                        "Ship Qty": parts[8],
+                        "Unit Price": parts[9],
+                        "Price UOM": parts[10],
+                        "Extended Price": parts[11],
+                        "Part Description": " ".join(next_parts)
                     }
                     records.append(record)
 
     df = pd.DataFrame(records)
     column_order = [
-        "Inv.Item", "Order No.", "Delivery No.", "HTS Code",
-        "Microsoft Part No.", "Manufacturer Part No.", "Model No",
-        "Part Description", "Ship Qty", "Price UOM",
-        "Unit Price", "Extended Price", "Country of Origin"
+        "Delivery No.", "Manufacturer Part No.", "Model No",
+        "Microsoft Part No.", "HTS Code", "Country of Origin",
+        "Ship Qty", "Unit Price", "Price UOM", "Extended Price",
+        "Part Description"
     ]
     for col in column_order:
         if col not in df.columns:
             df[col] = ""
     return df[column_order]
 
-# Streamlit UI 구성
+# Streamlit 앱 UI
 st.set_page_config(page_title="PDF 항목 추출기", layout="wide")
 st.title("📄 PDF → Excel 항목 추출기")
 
