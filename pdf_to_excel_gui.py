@@ -61,6 +61,8 @@ def extract_format_b(pdf_path):
                     parts2[0] == parts1[0] and parts2[1].isdigit()
                 ):
                     manu_part_no = " ".join(parts1[2:len(parts1)-8])
+                    desc_raw = " ".join(parts2[3:])
+                    desc_clean = desc_raw.replace("NEW NLR", "").strip()
                     record = {
                         "Delivery No.": parts2[1],
                         "Manufacturer Part No.": manu_part_no,
@@ -72,7 +74,7 @@ def extract_format_b(pdf_path):
                         "Unit Price": parts1[-3],
                         "Price UOM": parts1[-2],
                         "Extended Price": parts1[-1],
-                        "Part Description": " ".join(parts2[3:])
+                        "Part Description": desc_clean
                     }
                     records.append(record)
                     i += 2
