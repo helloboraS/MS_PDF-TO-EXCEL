@@ -65,12 +65,12 @@ def extract_format_b(pdf_path):
                             "Manufacturer Part No.": parts[2],
                             "Model No": model_parts[0] if model_parts else "",
                             "Microsoft Part No.": parts[3],
-                            "HTS Code": parts[6],
-                            "Country of Origin": parts[7],
-                            "Ship Qty": parts[8],
-                            "Unit Price": parts[9],
-                            "Price UOM": parts[10],
-                            "Extended Price": parts[11],
+                            "HTS Code": parts[5],
+                            "Country of Origin": parts[6],
+                            "Ship Qty": parts[7],
+                            "Unit Price": parts[8],
+                            "Price UOM": parts[9],
+                            "Extended Price": parts[10],
                             "Part Description": desc_line
                         }
                         records.append(record)
@@ -89,7 +89,7 @@ def extract_format_b(pdf_path):
             df[col] = ""
     return df[column_order]
 
-# Streamlit UI 구성
+# Streamlit 앱 UI 구성
 st.set_page_config(page_title="PDF 항목 추출기", layout="wide")
 st.title("📄 PDF → Excel 항목 추출기")
 
