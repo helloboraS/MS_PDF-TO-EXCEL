@@ -52,27 +52,22 @@ def extract_format_b(pdf_path):
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
             for i in range(len(lines) - 1):
-                parts = lines[i].split()
-                next_parts = lines[i + 1].split()
-                if (
-                    len(parts) >= 12
-                    and parts[0].isdigit()
-                    and parts[1].isdigit()
-                    and parts[10] == "EA"
-                    and parts[11].isdigit()
-                ):
+                line = lines[i].strip()
+                next_line = lines[i + 1].strip()
+                if re.match(r"^\d+\s+\d{10}\s+\S+\s+\S+\s+\S+\s+\d+\s+[A-Z]{2}\s+\d+\s+\d+\s+EA\s+\d+$", line):
+                    parts = line.split()
                     record = {
-                        "Delivery No.": parts[2],
-                        "Manufacturer Part No.": parts[3],
-                        "Model No": parts[4],
-                        "Microsoft Part No.": parts[5],
-                        "HTS Code": parts[6],
-                        "Country of Origin": parts[7],
-                        "Ship Qty": parts[8],
-                        "Unit Price": parts[9],
-                        "Price UOM": parts[10],
-                        "Extended Price": parts[11],
-                        "Part Description": " ".join(next_parts)
+                        "Delivery No.": parts[1],
+                        "Manufacturer Part No.": parts[2],
+                        "Model No": parts[3],
+                        "Microsoft Part No.": parts[4],
+                        "HTS Code": parts[5],
+                        "Country of Origin": parts[6],
+                        "Ship Qty": parts[7],
+                        "Unit Price": parts[8],
+                        "Price UOM": parts[9],
+                        "Extended Price": parts[10],
+                        "Part Description": next_line
                     }
                     records.append(record)
 
@@ -88,7 +83,7 @@ def extract_format_b(pdf_path):
             df[col] = ""
     return df[column_order]
 
-# Streamlit 앱 UI
+# Streamlit UI 구성
 st.set_page_config(page_title="PDF 항목 추출기", layout="wide")
 st.title("📄 PDF → Excel 항목 추출기")
 
