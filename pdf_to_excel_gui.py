@@ -61,24 +61,24 @@ def extract_format_b(pdf_path):
                 parts1 = line1.split()
                 parts2 = line2.split()
 
-                # 1행: 1 6001052531 0B46941 MSF-075029 NOCLASS 8471702020 CN 4 487091 EA 1948364
-                # 2행: 1 8500982837 NA Western Digital-HDD,3.5 IN,26.
                 if (
                     len(parts1) >= 11 and len(parts2) >= 4 and
                     parts1[0].isdigit() and parts1[1].isdigit() and
                     parts2[0] == parts1[0] and parts2[1].isdigit()
                 ):
+                    # 동적으로 Manufacturer Part No. 길이 계산
+                    manu_part_no = " ".join(parts1[2:len(parts1)-8])
                     record = {
                         "Delivery No.": parts2[1],
-                        "Manufacturer Part No.": parts1[2],
+                        "Manufacturer Part No.": manu_part_no,
                         "Model No": parts2[2],
-                        "Microsoft Part No.": parts1[3],
-                        "HTS Code": parts1[5],
-                        "Country of Origin": parts1[6],
-                        "Ship Qty": parts1[7],
-                        "Unit Price": parts1[8],
-                        "Price UOM": parts1[9],
-                        "Extended Price": parts1[10],
+                        "Microsoft Part No.": parts1[-8],
+                        "HTS Code": parts1[-6],
+                        "Country of Origin": parts1[-5],
+                        "Ship Qty": parts1[-4],
+                        "Unit Price": parts1[-3],
+                        "Price UOM": parts1[-2],
+                        "Extended Price": parts1[-1],
                         "Part Description": " ".join(parts2[3:])
                     }
                     records.append(record)
