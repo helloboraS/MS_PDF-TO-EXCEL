@@ -12,7 +12,7 @@ def extract_format_a(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
-            
+            st.write("📄 추출된 줄:", lines)
             st.write("📄 추출된 줄:", lines)
             for line in lines:
                 parts = line.split()
@@ -53,12 +53,22 @@ def extract_format_b(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
-            for i in range(len(lines)):
+            st.write("📄 추출된 줄:", lines)
+            i = 0
+            while i < len(lines) - 2:
                 line = lines[i].strip()
-                if re.match(r"^\\d{7,}\\s", line):  # Delivery No.가 숫자
-                    parts = line.split()
-                    if len(parts) >= 10:
-                        part_desc = lines[i + 1].strip() if i + 1 < len(lines) else ""
+                model_line = lines[i + 1].strip()
+                desc_line = lines[i + 2].strip()
+
+                parts = line.split()
+
+                # 정확히 11개 이상 + Delivery No.가 숫자이고 Microsoft Part No. 형식 포함
+                if (
+                    len(parts) >= 11
+                    and parts[0].isdigit()
+                    and re.match(r"[A-Z0-9\-]+", parts[3])
+                ):
+                    try:
                         record = {
                             "Delivery No.": parts[0],
                             "Manufacturer Part No.": parts[1],
@@ -70,9 +80,14 @@ def extract_format_b(pdf_path):
                             "Unit Price": parts[7],
                             "Price UOM": parts[8],
                             "Extended Price": parts[9],
-                            "Part Description": part_desc,
+                            "Part Description": desc_line
                         }
                         records.append(record)
+                        i += 3
+                    except Exception:
+                        i += 1
+                else:
+                    i += 1
 
     df = pd.DataFrame(records)
     column_order = [
@@ -85,7 +100,6 @@ def extract_format_b(pdf_path):
         if col not in df.columns:
             df[col] = ""
     return df[column_order]
-
 
 # Streamlit 앱 UI 구성
 st.set_page_config(page_title="PDF 항목 추출기", layout="wide")
