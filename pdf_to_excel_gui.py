@@ -3,16 +3,18 @@ import pandas as pd
 import pdfplumber
 import tempfile
 import os
+import re
 
 def extract_format_a(pdf_path):
     records = []
+    current_record = {}
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
             for line in lines:
                 parts = line.split()
                 if len(parts) >= 12 and parts[2].isdigit() and parts[-4].isdigit():
-                    record = {
+                    current_record = {
                         "PO No": parts[1],
                         "SAP Order No": parts[2],
                         "Part Number": parts[3],
@@ -26,131 +28,150 @@ def extract_format_a(pdf_path):
                         "HTS Code": "",
                         "HTS Description": ""
                     }
-                    records.append(record)
+                    records.append(current_record)
                 elif len(parts) >= 3 and parts[0].isdigit() and parts[1].isdigit():
                     if records:
                         records[-1]["HTS Code"] = parts[1]
                         records[-1]["HTS Description"] = " ".join(parts[2:])
-    return pd.DataFrame(records)
+    df = pd.DataFrame(records)
+    column_order = [
+        "PO No", "SAP Order No", "Part Number", "Part Description",
+        "Ship Qty", "Price UOM", "Unit Price", "Extended Price",
+        "Model No", "HTS Code", "Country of Origin", "HTS Description"
+    ]
+    for col in column_order:
+        if col not in df.columns:
+            df[col] = ""
+    return df[column_order]
 
 def extract_format_b(pdf_path):
     records = []
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
-            for line in lines:
-                parts = line.strip().split()
-                if len(parts) < 11 or not (parts[0].isdigit() and parts[1].isdigit()):
-                    continue
-                try:
-                    delivery_no = parts[1]
-                    msf_index = next(i for i, p in enumerate(parts) if p.startswith("MSF-"))
-                    ms_part_no = parts[msf_index]
-
-                    if msf_index > 3:
-                        model_no = parts[msf_index - 1]
-                        manufacturer_part_no = " ".join(parts[2:msf_index - 1])
-                    else:
-                        model_no = "NA"
-                        manufacturer_part_no = " ".join(parts[2:msf_index])
-
-                    hts_code = parts[msf_index + 2]
-                    country = parts[msf_index + 3]
-                    ship_qty = parts[msf_index + 4]
-                    unit_price = parts[msf_index + 5]
-                    price_uom = parts[msf_index + 6]
-                    ext_price = parts[msf_index + 7]
-
-                    desc_start_index = msf_index + 8
-                    desc_raw = " ".join(parts[desc_start_index:]) if len(parts) > desc_start_index else ""
+            i = 0
+            while i < len(lines) - 1:
+                line1 = lines[i].strip()
+                line2 = lines[i + 1].strip()
+                parts1 = line1.split()
+                parts2 = line2.split()
+                if (
+                    len(parts1) >= 11 and len(parts2) >= 3 and
+                    parts1[0].isdigit() and parts1[1].isdigit() and
+                    parts2[0] == parts1[0]
+                ):
+                    manu_part_no = " ".join(parts1[2:len(parts1)-8])
+                    desc_raw = " ".join(parts2[3:])
                     desc_clean = desc_raw.replace("NEW NLR", "").strip()
-
                     record = {
-                        "Delivery No.": delivery_no,
-                        "Manufacturer Part No.": manufacturer_part_no,
-                        "Model No": model_no,
-                        "Microsoft Part No.": ms_part_no,
-                        "HTS Code": hts_code,
-                        "Country of Origin": country,
-                        "Ship Qty": ship_qty,
-                        "Unit Price": unit_price,
-                        "Price UOM": price_uom,
-                        "Extended Price": ext_price,
+                        "Delivery No.": parts2[1],
+                        "Manufacturer Part No.": manu_part_no,
+                        "Model No": parts2[2],
+                        "Microsoft Part No.": parts1[-8],
+                        "HTS Code": parts1[-6],
+                        "Country of Origin": parts1[-5],
+                        "Ship Qty": parts1[-4],
+                        "Unit Price": parts1[-3],
+                        "Price UOM": parts1[-2],
+                        "Extended Price": parts1[-1],
                         "Part Description": desc_clean
                     }
                     records.append(record)
-                except Exception:
-                    continue
-    return pd.DataFrame(records)
+                    i += 2
+                else:
+                    i += 1
+    df = pd.DataFrame(records)
+    column_order = [
+        "Delivery No.", "Manufacturer Part No.", "Model No",
+        "Microsoft Part No.", "HTS Code", "Country of Origin",
+        "Ship Qty", "Unit Price", "Price UOM", "Extended Price",
+        "Part Description"
+    ]
+    for col in column_order:
+        if col not in df.columns:
+            df[col] = ""
+    return df[column_order]
 
+# Streamlit 앱 UI 구성
 st.set_page_config(page_title="PDF 항목 추출기", layout="wide")
 st.title("📄 PDF → Excel 항목 추출기")
 
 tab1, tab2 = st.tabs(["📘 MS1056", "📗 MS1279-PAYMENTS"])
 
 with tab1:
-    uploaded_files_a = st.file_uploader("MS1056 PDF 업로드", type=["pdf"], accept_multiple_files=True, key="a")
+    uploaded_files_a = st.file_uploader("[MS1056] PDF 파일을 하나 이상 업로드하세요", type=["pdf"], accept_multiple_files=True, key="a")
     if uploaded_files_a:
-        all_data = {}
-        for uploaded_file in uploaded_files_a:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-                tmp_file.write(uploaded_file.read())
-                temp_pdf_path = tmp_file.name
-            df = extract_format_a(temp_pdf_path)
-            os.remove(temp_pdf_path)
-            sheet_name = os.path.splitext(uploaded_file.name)[0][:31]
-            all_data[sheet_name] = df
-            st.subheader(f"{sheet_name}")
-            st.dataframe(df)
-        if all_data:
-            excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
-            with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
+        with st.spinner("PDF에서 항목 추출 중..."):
+            all_data = {}
+            try:
+                for uploaded_file in uploaded_files_a:
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+                        tmp_file.write(uploaded_file.read())
+                        temp_pdf_path = tmp_file.name
+                    df = extract_format_a(temp_pdf_path)
+                    os.remove(temp_pdf_path)
+                    sheet_name = os.path.splitext(uploaded_file.name)[0][:31]
+                    all_data[sheet_name] = df
+                st.success("✅ MS1056 PDF 추출 완료")
                 for name, df in all_data.items():
-                    df.to_excel(writer, sheet_name=name, index=False)
-            with open(excel_file.name, "rb") as f:
-                st.download_button(
-                    label="📥 MS1056 엑셀 다운로드",
-                    data=f,
-                    file_name="ms1056_data.xlsx"
-                )
+                    st.subheader(f"📄 {name}")
+                    st.dataframe(df)
+                excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
+                with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
+                    for name, df in all_data.items():
+                        df.to_excel(writer, sheet_name=name, index=False)
+                with open(excel_file.name, "rb") as f:
+                    st.download_button(
+                        label="📥 MS1056 엑셀 다운로드",
+                        data=f,
+                        file_name="ms1056_data.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
+            except Exception as e:
+                st.error(f"❌ 오류 발생: {e}")
 
 with tab2:
-    uploaded_files_b = st.file_uploader("MS1279 PDF 업로드", type=["pdf"], accept_multiple_files=True, key="b")
+    uploaded_files_b = st.file_uploader("[MS1279-PAYMENTS] PDF 파일을 하나 이상 업로드하세요", type=["pdf"], accept_multiple_files=True, key="b")
     if uploaded_files_b:
         all_data = {}
-        for uploaded_file in uploaded_files_b:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-                tmp_file.write(uploaded_file.read())
-                temp_pdf_path = tmp_file.name
-            df = extract_format_b(temp_pdf_path)
-            os.remove(temp_pdf_path)
-            sheet_name = os.path.splitext(uploaded_file.name)[0][:31]
-            all_data[sheet_name] = df
-            st.subheader(f"{sheet_name}")
-            st.dataframe(df)
-        if all_data:
-            excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
-            with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
-                for name, df in all_data.items():
-                    df.to_excel(writer, sheet_name=name, index=False)
-                merged_df = pd.concat(all_data.values(), ignore_index=True)
-                filtered_df = pd.DataFrame({
-                    "HS CODE": merged_df["HTS Code"],
-                    "DESC + ORIGIN": merged_df.apply(
-                        lambda row: row["Part Description"]
-                        + (" MODEL: " + row["Model No"] if row["Model No"] != "NA" else "")
-                        + " ORIGIN: " + row["Country of Origin"], axis=1),
-                    "PART NO.": "PART NO: " + merged_df["Microsoft Part No."] + " (" + merged_df["Manufacturer Part No."] + ")",
-                    "Q'TY": merged_df["Ship Qty"],
-                    "UOM": merged_df["Price UOM"],
-                    "UNIT PRICE": merged_df["Unit Price"],
-                    "TOTAL AMOUNT": merged_df["Extended Price"],
-                    "PART NO. FULL": merged_df["Microsoft Part No."] + " (" + merged_df["Manufacturer Part No."] + ")"
-                })
-                filtered_df.to_excel(writer, sheet_name="신고서용", index=False)
-            with open(excel_file.name, "rb") as f:
-                st.download_button(
-                    label="📥 MS1279-PAYMENTS 엑셀 다운로드",
-                    data=f,
-                    file_name="ms1279_payments_data.xlsx"
-                )
+        st.subheader("🔍 미리보기 결과")
+        try:
+            for uploaded_file in uploaded_files_b:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+                    tmp_file.write(uploaded_file.read())
+                    temp_pdf_path = tmp_file.name
+                df = extract_format_b(temp_pdf_path)
+                os.remove(temp_pdf_path)
+                sheet_name = os.path.splitext(uploaded_file.name)[0][:31]
+                all_data[sheet_name] = df
+                st.write(f"📄 {sheet_name}")
+                st.dataframe(df)
+            if all_data:
+                excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
+                with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
+                    for name, df in all_data.items():
+                        df.to_excel(writer, sheet_name=name, index=False)
+                    merged_df = pd.concat(all_data.values(), ignore_index=True)
+                    filtered_df = pd.DataFrame({
+                        "HS CODE": merged_df["HTS Code"],
+                        "DESC + ORIGIN": merged_df.apply(
+                            lambda row: row["Part Description"]
+                            + (" MODEL: " + row["Model No"] if row["Model No"] != "NA" else "")
+                            + " ORIGIN: " + row["Country of Origin"], axis=1),
+                        "PART NO.": "PART NO: " + merged_df["Microsoft Part No."] + " (" + merged_df["Manufacturer Part No."] + ")",
+                        "Q'TY": merged_df["Ship Qty"],
+                        "UOM": merged_df["Price UOM"],
+                        "UNIT PRICE": merged_df["Unit Price"],
+                        "TOTAL AMOUNT": merged_df["Extended Price"],
+                        "PART NO. FULL": merged_df["Microsoft Part No."] + " (" + merged_df["Manufacturer Part No."] + ")"
+                    })
+                    filtered_df.to_excel(writer, sheet_name="신고서용", index=False)
+                with open(excel_file.name, "rb") as f:
+                    st.download_button(
+                        label="📥 MS1279-PAYMENTS 엑셀 다운로드",
+                        data=f,
+                        file_name="ms1279_payments_data.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
+        except Exception as e:
+            st.error(f"❌ 오류 발생: {e}")
