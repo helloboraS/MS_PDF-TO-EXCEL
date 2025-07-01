@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import pdfplumber
@@ -38,37 +39,32 @@ def extract_format_b(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
-            for line in lines:
-                parts = line.strip().split()
-                if len(parts) < 11 or not (parts[0].isdigit() and parts[1].isdigit()):
+            i = 0
+            while i < len(lines) - 1:
+                line1 = lines[i].strip().split()
+                line2 = lines[i + 1].strip().split()
+
+                if not (line1 and line2):
+                    i += 1
                     continue
+
                 try:
-                    delivery_no = parts[1]
-                    msf_index = next(i for i, p in enumerate(parts) if p.startswith("MSF-"))
-                    ms_part_no = parts[msf_index]
+                    delivery_no = line1[1]
+                    manufacturer_part_no = line1[2]
+                    msf_index = next(j for j, p in enumerate(line1) if p.startswith("MSF-"))
+                    ms_part_no = line1[msf_index]
 
-                    if msf_index > 3:
-                        potential_model = parts[msf_index - 2] + " " + parts[msf_index - 1]
-                        if len(parts[msf_index - 2]) >= 4 and len(parts[msf_index - 1]) <= 3:
-                            model_no = potential_model.strip()
-                            manufacturer_part_no = " ".join(parts[2:msf_index - 2])
-                        else:
-                            model_no = parts[msf_index - 1]
-                            manufacturer_part_no = " ".join(parts[2:msf_index - 1])
-                       
-                    else:
-                        model_no = "NA"
-                        manufacturer_part_no = " ".join(parts[2:msf_index])
+                    model_no = line2[2] if len(line2) > 2 else "NA"
 
-                    hts_code = parts[msf_index + 2]
-                    country = parts[msf_index + 3]
-                    ship_qty = parts[msf_index + 4]
-                    unit_price = parts[msf_index + 5]
-                    price_uom = parts[msf_index + 6]
-                    ext_price = parts[msf_index + 7]
+                    hts_code = line1[msf_index + 2]
+                    country = line1[msf_index + 3]
+                    ship_qty = line1[msf_index + 4]
+                    unit_price = line1[msf_index + 5]
+                    price_uom = line1[msf_index + 6]
+                    ext_price = line1[msf_index + 7]
 
-                    desc_start_index = msf_index + 8
-                    desc_raw = " ".join(parts[desc_start_index:]) if len(parts) > desc_start_index else ""
+                    desc_start_index = 3 if len(line2) > 3 else None
+                    desc_raw = " ".join(line2[desc_start_index:]) if desc_start_index else ""
                     desc_clean = desc_raw.replace("NEW NLR", "").strip()
 
                     record = {
@@ -85,8 +81,9 @@ def extract_format_b(pdf_path):
                         "Part Description": desc_clean
                     }
                     records.append(record)
+                    i += 2
                 except Exception:
-                    continue
+                    i += 1
     return pd.DataFrame(records)
 
 st.set_page_config(page_title="PDF 항목 추출기", layout="wide")
@@ -151,9 +148,9 @@ with tab2:
                     "UOM": merged_df["Price UOM"],
                     "UNIT PRICE": merged_df["Unit Price"],
                     "TOTAL AMOUNT": merged_df["Extended Price"],
-                    "PART NO. FULL": merged_df["Microsoft Part No."] + " (" + merged_df["Manufacturer Part No."] + ")"
+                    "PART NO. FULL": merged_df["Microsoft Part No."] + " (" + merged_df["Manufacturer Part No."] + ")",
+                    "Model No": merged_df["Model No"]
                 })
-
                 filtered_df.to_excel(writer, sheet_name="신고서용", index=False)
             with open(excel_file.name, "rb") as f:
                 st.download_button(
