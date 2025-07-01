@@ -48,8 +48,14 @@ def extract_format_b(pdf_path):
                     ms_part_no = parts[msf_index]
 
                     if msf_index > 3:
-                        model_no = parts[msf_index - 1]
-                        manufacturer_part_no = " ".join(parts[2:msf_index - 1])
+                        potential_model = parts[msf_index - 2] + " " + parts[msf_index - 1]
+                        if len(parts[msf_index - 2]) >= 4 and len(parts[msf_index - 1]) <= 3:
+                            model_no = potential_model.strip()
+                            manufacturer_part_no = " ".join(parts[2:msf_index - 2])
+                        else:
+                            model_no = parts[msf_index - 1]
+                            manufacturer_part_no = " ".join(parts[2:msf_index - 1])
+                       
                     else:
                         model_no = "NA"
                         manufacturer_part_no = " ".join(parts[2:msf_index])
