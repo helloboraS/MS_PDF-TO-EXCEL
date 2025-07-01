@@ -48,11 +48,6 @@ def extract_format_b(pdf_path):
                     i += 1
                     continue
                     
-                if not (line1[0].isdigit() and line2[0].isdigit() and
-                        line1[1].isdigit() and line2[1].isdigit() and
-                        line1[1] == line2[1]):
-                    i += 1
-                    continue
 
                 try:
                     delivery_no = line1[1]
