@@ -38,50 +38,49 @@ def extract_format_b(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
-            for line in lines:
-                parts = line.strip().split()
-                if len(parts) < 11 or not (parts[0].isdigit() and parts[1].isdigit()):
+
+            # 두 줄씩 처리
+            for i in range(0, len(lines) - 1, 2):
+                line1 = lines[i].strip().split()
+                line2 = lines[i + 1].strip().split()
+
+                if len(line1) < 5 or len(line2) < 3:
                     continue
+
                 try:
-                    delivery_no = parts[1]
-                    msf_index = next(i for i, p in enumerate(parts) if p.startswith("MSF-"))
-                    ms_part_no = parts[msf_index]
+                    delivery_no = line2[1]
+                    model_no = line2[2] if not line2[2].startswith("NEW") else "NA"
+                    part_desc = " ".join(line2[3:]).replace("NEW", "").replace("NLR", "").strip()
 
-                    if msf_index > 3:
-                        model_no = parts[msf_index - 1]
-                        manufacturer_part_no = " ".join(parts[2:msf_index - 1])
-                    else:
-                        model_no = "NA"
-                        manufacturer_part_no = " ".join(parts[2:msf_index])
-
-                    hts_code = parts[msf_index + 2]
-                    country = parts[msf_index + 3]
-                    ship_qty = parts[msf_index + 4]
-                    unit_price = parts[msf_index + 5]
-                    price_uom = parts[msf_index + 6]
-                    ext_price = parts[msf_index + 7]
-
-                    desc_start_index = msf_index + 8
-                    desc_raw = " ".join(parts[desc_start_index:]) if len(parts) > desc_start_index else ""
-                    desc_clean = desc_raw.replace("NEW NLR", "").strip()
+                    ms_part_no = line1[3]
+                    mfg_part_no = line1[2]
+                    order_no = line1[1]
+                    hts_code = line1[5]
+                    origin = line1[6]
+                    ship_qty = line1[7]
+                    unit_price = line1[8]
+                    price_uom = line1[9]
+                    ext_price = line1[10]
 
                     record = {
                         "Delivery No.": delivery_no,
-                        "Manufacturer Part No.": manufacturer_part_no,
+                        "Order No.": order_no,
+                        "Manufacturer Part No.": mfg_part_no,
                         "Model No": model_no,
                         "Microsoft Part No.": ms_part_no,
                         "HTS Code": hts_code,
-                        "Country of Origin": country,
+                        "Country of Origin": origin,
                         "Ship Qty": ship_qty,
                         "Unit Price": unit_price,
                         "Price UOM": price_uom,
                         "Extended Price": ext_price,
-                        "Part Description": desc_clean
+                        "Part Description": part_desc
                     }
                     records.append(record)
                 except Exception:
                     continue
     return pd.DataFrame(records)
+
 
 st.set_page_config(page_title="PDF 항목 추출기", layout="wide")
 st.title("📄 PDF → Excel 항목 추출기")
