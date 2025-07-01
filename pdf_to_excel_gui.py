@@ -50,7 +50,8 @@ def extract_format_b(pdf_path):
 
                 try:
                     delivery_no = line1[1]
-                    manufacturer_part_no = line1[2]
+                    msf_index = next(j for j, p in enumerate(line1) if p.startswith("MSF-"))
+                    manufacturer_part_no = " ".join(line1[2:msf_index])
                     msf_index = next(j for j, p in enumerate(line1) if p.startswith("MSF-"))
                     ms_part_no = line1[msf_index]
 
