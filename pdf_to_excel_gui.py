@@ -33,6 +33,17 @@ def extract_format_a(pdf_path):
                         records[-1]["HTS Description"] = " ".join(parts[2:])
     return pd.DataFrame(records)
 
+def is_valid_item_line(line):
+    return (
+        any(p.startswith("MSF-") for p in line)
+        and any(p.isdigit() and len(p) >= 6 for p in line)
+        and not any(keyword in " ".join(line) for keyword in [
+            "Microsoft Payments", "Singapore", "Tower", "Frasers",
+            "Cecil", "FCA", "Incoterms", "Tracking Number", "Date:",
+            "approval", "export", "otherwise", "government", "authorized"
+        ])
+    )
+
 def extract_format_b(pdf_path):
     records = []
     with pdfplumber.open(pdf_path) as pdf:
@@ -44,7 +55,7 @@ def extract_format_b(pdf_path):
                 line1 = lines[i].strip().split()
                 line2 = lines[i + 1].strip().split()
 
-                if len(line1) < 5 or len(line2) < 3:
+                if not is_valid_item_line(line1) or not is_valid_item_line(line2):
                     continue
 
                 try:
