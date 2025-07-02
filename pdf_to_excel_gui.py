@@ -85,10 +85,10 @@ def extract_format_b(pdf_path):
                     i += 1
     return pd.DataFrame(records)
 
-st.set_page_config(page_title="PDF 항목 추출기", layout="wide")
+st.set_page_config(page_title="MS Helper", layout="wide")
 st.title("Microsoft Helper ♥")
 
-tab1, tab2, tab3 = st.tabs(["📘 MS1056", "📗 MS1279-PAYMENTS", "📒 MS1279-MASTER 비교"])
+tab1, tab2, tab3, tab4 = st.tabs(["📘 MS1056", "📗 MS1279-PAYMENTS", "📒 MS1279-MASTER 비교", "📕 MS1279-WESCO"])
 
 with tab1:
     uploaded_files_a = st.file_uploader("MS1056 PDF Upload", type=["pdf"], accept_multiple_files=True, key="a")
@@ -245,3 +245,4 @@ with tab3:
             )
     elif master_df is None:
         st.warning("⚠️ 마스터 파일이 없습니다. 최초 1회 업로드가 필요합니다.")
+
