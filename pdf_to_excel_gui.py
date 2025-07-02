@@ -174,7 +174,7 @@ with tab3:
     master_file = st.file_uploader("📘 마스터 파일 업로드 (필요 시 업로드)", type=["xlsx"], key="master_excel")
     if master_file:
         df = pd.read_excel(master_file)
-        df.to_excel("MASTER_MS5673.xlsx", index=False)  # 로컬에 저장
+        df.to_excel("MASTER_MS5673.xlsx", index=False)
         st.session_state["master_df"] = df
         st.success("✅ 마스터 파일이 저장되었습니다. 다음 실행에도 자동으로 불러옵니다.")
 
@@ -182,6 +182,9 @@ with tab3:
     uploaded_excel = st.file_uploader("📥 비교 대상 엑셀 업로드 (Microsoft Part No., 원산지, 수량, 단위, 단가, 금액, INV HS 포함)", type=["xlsx"], key="compare_excel")
 
     master_df = st.session_state.get("master_df")
+
+    def clean_code(code):
+        return str(code).strip().replace("-", "").zfill(10)
 
     if uploaded_excel and master_df is not None:
         input_df = pd.read_excel(uploaded_excel)
@@ -191,16 +194,20 @@ with tab3:
 
         merged = input_df.merge(master_df, how="left", on="Microsoft Part No.")
 
+        merged["HS CODE"] = merged["HS CODE"].apply(clean_code)
+        merged["INV HS"] = merged["INV HS"].apply(clean_code)
+
         merged["HS10_MATCH"] = merged.apply(
-            lambda row: "O" if str(row.get("INV HS", "")).replace("-", "")[:10] == str(row.get("HS CODE", "")).replace("-", "")[:10] else "X", axis=1
+            lambda row: "O" if row["INV HS"][:10] == row["HS CODE"][:10] else "X", axis=1
         )
         merged["HS6_MATCH"] = merged.apply(
-            lambda row: "O" if str(row.get("INV HS", "")).replace("-", "")[:6] == str(row.get("HS CODE", "")).replace("-", "")[:6] else "X", axis=1
+            lambda row: "O" if row["INV HS"][:6] == row["HS CODE"][:6] else "X", axis=1
         )
 
         columns_to_show = [
             "Microsoft Part No.", "원산지", "수량", "단위", "단가", "금액", "INV HS",
-            "Part Description", "HS CODE", "모델명", "전파인증번호", "전기인증번호", "기관", "정격전압", "요건비대상사유", "REMARK",
+            "HS CODE",  # 마스터 HS CODE 추가
+            "Part Description", "모델명", "전파인증번호", "전기인증번호", "기관", "정격전압", "요건비대상사유", "REMARK",
             "HS10_MATCH", "HS6_MATCH"
         ]
         final_df = merged[[col for col in columns_to_show if col in merged.columns]]
