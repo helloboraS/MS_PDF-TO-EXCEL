@@ -173,6 +173,15 @@ with tab3:
 
     def clean_code(code):
         return str(code).strip().replace("-", "")
+        
+    def fix_hscode(code):
+        try:
+            code_str = str(code)
+            if code_str.endswith(".0"):
+                code_str = code_str[:-2]
+            return code_str.zfill(10)
+        except:
+            return ""        
 
     if uploaded_excel and master_df is not None:
         input_df = pd.read_excel(uploaded_excel)
@@ -182,14 +191,7 @@ with tab3:
         merged = input_df.merge(master_df, how="left", on="Microsoft Part No.")
         merged["INV HS"] = merged["INV HS"].apply(clean_code)
         
-    def fix_hscode(code):
-        try:
-            code_str = str(code)
-            if code_str.endswith(".0"):
-                code_str = code_str[:-2]
-            return code_str.zfill(10)
-        except:
-            return ""
+
 
         merged["HS Code"] = merged["HS Code"].apply(clean_code).apply(fix_hscode)
 
