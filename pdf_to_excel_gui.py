@@ -183,7 +183,16 @@ with tab3:
         merged["HS Code"] = merged["HS Code"].apply(clean_code)
         merged["INV HS"] = merged["INV HS"].apply(clean_code)
         
-        merged["HS Code"] = merged["HS Code"].apply(lambda x: "'" + str(x).zfill(10))
+    def fix_hscode(code):
+        try:
+            code_str = str(code)
+            if code_str.endswith(".0"):
+                code_str = code_str[:-2]
+        return code_str.zfill(10)
+    except:
+        return ""
+
+    merged["HS Code"] = merged["HS Code"].apply(clean_code).apply(fix_hscode)
 
         merged["HS10_MATCH"] = merged.apply(lambda row: "O" if row["INV HS"][:10] == row["HS Code"][:10] else "X", axis=1)
         merged["HS6_MATCH"] = merged.apply(lambda row: "O" if row["INV HS"][:6] == row["HS Code"][:6] else "X", axis=1)
