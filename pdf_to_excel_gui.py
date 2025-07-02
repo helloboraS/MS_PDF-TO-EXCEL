@@ -3,6 +3,10 @@ import pandas as pd
 import pdfplumber
 import tempfile
 import re
+import pytesseract
+from pdf2image import convert_from_path
+from PIL import Image
+import re
 import os
 
 def extract_format_a(pdf_path):
@@ -251,85 +255,86 @@ with tab3:
 
 
 with tab4:
-    uploaded_files_wesco = st.file_uploader("WESCO 인보이스 PDF 업로드", type=["pdf"], accept_multiple_files=True, key="wesco")
-    if uploaded_files_wesco:
-        all_data = {}
-        for uploaded_file in uploaded_files_wesco:
-            sheet_name = os.path.splitext(uploaded_file.name)[0][:31]
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-                tmp_file.write(uploaded_file.read())
-                temp_pdf_path = tmp_file.name
-            records = []
-            with pdfplumber.open(temp_pdf_path) as pdf:
-                for page in pdf.pages:
-                    text = page.extract_text()
-                    lines = text.split("\n") if text else []
-                    item_number = ""
-                    part_no = ""
-                    for i, line in enumerate(lines):
-                        if "Customer item:" in line and "MSF-" in line:
-                            item_number = ""
-                            match_item = re.search(r"Customer line: (\d+)", line)
-                            match_part = re.search(r"(MSF[-–]\d{6})", line)
-                            if match_item:
-                                item_number = match_item.group(1).strip()
-                            if match_part:
-                                part_no = match_part.group(1).strip()
+    st.header("📕 WESCO 인보이스 OCR 변환")
+    uploaded_pdf = st.file_uploader("WESCO 인보이스 PDF 업로드 (OCR 기반)", type=["pdf"], key="ocr_wesco")
+    if uploaded_pdf:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
+            tmp_pdf.write(uploaded_pdf.read())
+            temp_path = tmp_pdf.name
 
-                        if re.match(r"^\d+\s+\d+\s+EA\s+[\d\.]+\s+\d+\s+[\d\.]+", line):
-                            parts = line.strip().split()
-                            try:
-                                ordered_qty = int(parts[0])
-                                shipped_qty = int(parts[1])
-                                unit = parts[2]
-                                unit_price = float(parts[3])
-                                amount = float(parts[5])
-                            except:
-                                continue
+        images = convert_from_path(temp_path, dpi=300)
+        ocr_records = []
 
-                            # 뒤쪽 줄에서 코드 정보 추출
-                            for j in range(i + 1, min(i + 5, len(lines))):
-                                if "Export Code:" in lines[j]:
-                                    code_line = lines[j]
-                                    break
-                            else:
-                                code_line = ""
+        for img in images:
+            text = pytesseract.image_to_string(img, lang='eng')
+            lines = text.split('\n')
 
-                            hts = ""
-                            origin = ""
-                            match_hts = re.search(r"Export Code:\s+(\d+\.\d+\.\d+)", code_line)
-                            match_origin = re.search(r"Origin:\s+(\w+)", code_line)
-                            if match_hts:
-                                hts = match_hts.group(1)
-                            if match_origin:
-                                origin = match_origin.group(1)
+            item_number = ""
+            part_no = ""
+            hts_code = ""
+            origin = ""
+            ordered_qty = shipped_qty = unit_price = amount = None
+            unit = "EA"
 
-                            records.append({
-                                "Item Number": item_number,
-                                "Microsoft Part No.": part_no,
-                                "HTS Code": hts,
-                                "Country of Origin": origin,
-                                "Ordered Qty": ordered_qty,
-                                "Shipped Qty": shipped_qty,
-                                "Unit": unit,
-                                "Unit Price": unit_price,
-                                "Amount": amount
-                            })
-            os.remove(temp_pdf_path)
-            df = pd.DataFrame(records)
-            sheet_name = os.path.splitext(uploaded_file.name)[0][:31]
-            all_data[sheet_name] = df
-            st.subheader(f"{sheet_name}")
-            st.dataframe(df)
+            for i, line in enumerate(lines):
+                line_clean = line.strip()
 
-        if all_data:
-            excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
-            with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
-                for name, df in all_data.items():
-                    df.to_excel(writer, sheet_name=name, index=False)
-            with open(excel_file.name, "rb") as f:
+                if re.match(r"^(WES|C13|CPC)[\-\w]{4,}", line_clean.replace(" ", "").replace("–", "-")):
+                    item_number = line_clean.replace("–", "-").replace(" ", "")
+
+                if "Customer item:" in line and "MSF" in line:
+                    m = re.search(r"(MSF[-–]?\d+)", line)
+                    if m:
+                        part_no = m.group(1).replace("–", "-")
+
+                if "Export Code:" in line:
+                    hts = re.search(r"Export Code:\s*([\d\.]+)", line)
+                    org = re.search(r"Origin:\s*([A-Za-z]+)", line)
+                    if hts:
+                        hts_code = hts.group(1)
+                    if org:
+                        origin = org.group(1)
+
+                if "COO:" in line and not origin:
+                    m = re.search(r"COO:\s*([A-Za-z]+)", line)
+                    if m:
+                        origin = m.group(1)
+
+                if re.match(r"^\d+\s+\d+\s+EA\s+\d+(\.\d+)?\s+\d+\s+\d+(\.\d+)?", line):
+                    parts = line.strip().split()
+                    try:
+                        ordered_qty = int(parts[0])
+                        shipped_qty = int(parts[1])
+                        unit_price = float(parts[3])
+                        amount = float(parts[5])
+                    except:
+                        continue
+
+                if item_number and part_no and hts_code and ordered_qty:
+                    ocr_records.append({
+                        "Item Number": item_number,
+                        "Microsoft Part No.": part_no,
+                        "HTS Code": hts_code,
+                        "Country of Origin": origin,
+                        "Ordered Qty": ordered_qty,
+                        "Shipped Qty": shipped_qty,
+                        "Unit": unit,
+                        "Unit Price": unit_price,
+                        "Amount": amount
+                    })
+                    item_number = part_no = hts_code = origin = ""
+                    ordered_qty = shipped_qty = unit_price = amount = None
+
+        df = pd.DataFrame(ocr_records)
+        st.dataframe(df)
+
+        if not df.empty:
+            to_excel = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
+            df.to_excel(to_excel.name, index=False)
+
+            with open(to_excel.name, "rb") as f:
                 st.download_button(
-                    label="📥 WESCO 인보이스 엑셀 다운로드",
+                    label="📥 OCR 인보이스 엑셀 다운로드",
                     data=f,
-                    file_name="wesco_invoice_data.xlsx"
+                    file_name="WESCO_OCR_invoice.xlsx"
                 )
