@@ -216,7 +216,7 @@ with tab3:
 
         to_excel = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
         with pd.ExcelWriter(to_excel.name, engine="openpyxl") as writer:
-            final_df.to_excel(writer, index=False, sheet_name="비교결과")
+            final_df.drop(columns=["무역거래처상호"], errors="ignore").to_excel(writer, index=False, sheet_name="비교결과")
             invoice_sheet.to_excel(writer, index=False, sheet_name="신고서")
             radio_req.to_excel(writer, index=False, sheet_name="전파요건")
             safety_req.to_excel(writer, index=False, sheet_name="전안요건")
