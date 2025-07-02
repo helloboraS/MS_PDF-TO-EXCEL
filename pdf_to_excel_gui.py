@@ -172,7 +172,7 @@ with tab3:
     master_df = st.session_state.get("master_df")
 
     def clean_code(code):
-        return str(code).strip().replace("-", "").zfill(10)
+        return str(code).strip().replace("-", "")
 
     if uploaded_excel and master_df is not None:
         input_df = pd.read_excel(uploaded_excel)
