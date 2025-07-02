@@ -187,9 +187,9 @@ with tab3:
             code_str = str(code)
             if code_str.endswith(".0"):
                 code_str = code_str[:-2]
-        return code_str.zfill(10)
-    except:
-        return ""
+            return code_str.zfill(10)
+        except:
+            return ""
 
     merged["HS Code"] = merged["HS Code"].apply(clean_code).apply(fix_hscode)
 
