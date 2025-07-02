@@ -190,8 +190,8 @@ with tab3:
         merged["전기"] = merged["전기인증번호"].apply(lambda x: "O" if pd.notna(x) and str(x).strip() else "X")
 
         final_df = merged.copy()
-        final_df["HS Code"] = final_df["HS Code"].astype(str).apply(lambda x: f"'{x}")
-        final_df["INV HS"] = final_df["INV HS"].astype(str).apply(lambda x: f"'{x}")
+        final_df["HS Code"] = final_df["HS Code"].astype(str).apply(lambda x: f'="{x}"')
+        final_df["INV HS"] = final_df["INV HS"].astype(str).apply(lambda x: f'="{x}"')
         if "무역거래처상호" in final_df.columns:
             final_df.drop(columns=["무역거래처상호"], inplace=True)
 
@@ -220,7 +220,25 @@ with tab3:
 
         to_excel = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
         with pd.ExcelWriter(to_excel.name, engine="openpyxl") as writer:
-            final_df.to_excel(writer, index=False, sheet_name="비교결과")
+            # ✅ 신규코드: 미매칭 Microsoft Part No. 색상 표시용 컬럼           
+        final_df["MATCHED"] = final_df["HS Code"].notna()
+        final_df.to_excel(writer, index=False, sheet_name="비교결과")
+        
+        # ✅ 신규코드: openpyxl로 색상 표시
+        from openpyxl import load_workbook
+        from openpyxl.styles import PatternFill
+        red_fill = PatternFill(start_color="FFFF9999", end_color="FFFF9999", fill_type="solid")
+        writer.book.save(to_excel.name)
+        wb = load_workbook(to_excel.name)
+        ws = wb["비교결과"]
+        header = [cell.value for cell in ws[1]]
+        col_index = header.index("Microsoft Part No.") + 1
+        match_index = header.index("MATCHED") + 1
+        for row in range(2, ws.max_row + 1):
+            matched = ws.cell(row=row, column=match_index).value
+            if not matched:
+                ws.cell(row=row, column=col_index).fill = red_fill
+        wb.save(to_excel.name)
             invoice_sheet.to_excel(writer, index=False, sheet_name="신고서")
             radio_req.to_excel(writer, index=False, sheet_name="전파요건")
             safety_req.to_excel(writer, index=False, sheet_name="전안요건")
