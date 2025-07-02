@@ -214,6 +214,7 @@ with tab3:
             "단위": final_df["단위"],
             "단가": final_df["단가"],
             "금액": final_df["금액"],
+            "Microsoft Part No. (원본)": final_df["Microsoft Part No."],  # ← 추가된 열
             "전파": final_df["전파"],
             "전기": final_df["전기"],
             "요건비대상사유": final_df["요건비대상"]
