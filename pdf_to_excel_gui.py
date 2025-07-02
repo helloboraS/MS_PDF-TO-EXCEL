@@ -86,7 +86,7 @@ def extract_format_b(pdf_path):
     return pd.DataFrame(records)
 
 st.set_page_config(page_title="PDF 항목 추출기", layout="wide")
-st.title("📄 PDF → Excel 항목 추출기")
+st.title("Microsoft Helper♥")
 
 tab1, tab2, tab3 = st.tabs(["📘 MS1056", "📗 MS1279-PAYMENTS", "📒 마스터 비교"])
 
