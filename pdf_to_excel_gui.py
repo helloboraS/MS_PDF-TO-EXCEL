@@ -17,7 +17,7 @@ def extract_format_a(pdf_path):
                         "PO No": parts[1],
                         "SAP Order No": parts[2],
                         "Part Number": parts[3],
-                        "Part Description": " ".join(parts[4:-6]),
+                        "PART_DESCRIPTION": " ".join(parts[4:-6]),
                         "Model No": parts[-6],
                         "Country of Origin": parts[-5],
                         "Ship Qty": parts[-4],
@@ -80,7 +80,7 @@ def extract_format_b(pdf_path):
                         "Unit Price": unit_price,
                         "Price UOM": price_uom,
                         "Extended Price": ext_price,
-                        "Part Description": desc_clean
+                        "PART_DESCRIPTION": desc_clean
                     }
                     records.append(record)
                     i += 2
@@ -142,7 +142,7 @@ with tab2:
                 filtered_df = pd.DataFrame({
                     "HS_CODE": merged_df["HTS Code"],
                     "DESC + ORIGIN": merged_df.apply(
-                        lambda row: row["Part Description"]
+                        lambda row: row["PART_DESCRIPTION"]
                         + (" MODEL: " + row["Model No"] if row["Model No"] != "NA" else "")
                         + " ORIGIN: " + row["Country of Origin"], axis=1),
                     "PART NO.": "PART NO: " + merged_df["Microsoft Part No."] + " (" + merged_df["Manufacturer Part No."] + ")",
@@ -201,7 +201,7 @@ with tab3:
         # 시트 2 - 신고서
         invoice_sheet = pd.DataFrame({
             "HS Code": final_df["HS_CODE"],
-            "Part Description": final_df["Part Description"] + ' ORIGIN:' + final_df["원산지"],
+            "PART_DESCRIPTION": final_df["PART_DESCRIPTION"] + ' ORIGIN:' + final_df["원산지"],
             "Microsoft Part No.": "PART NO: " + final_df["Microsoft Part No."],
             "수량": final_df["수량"],
             "단위": final_df["단위"],
