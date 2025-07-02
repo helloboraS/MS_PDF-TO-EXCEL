@@ -191,7 +191,7 @@ with tab3:
         except:
             return ""
 
-    merged["HS Code"] = merged["HS Code"].apply(clean_code).apply(fix_hscode)
+        merged["HS Code"] = merged["HS Code"].apply(clean_code).apply(fix_hscode)
 
         merged["HS10_MATCH"] = merged.apply(lambda row: "O" if row["INV HS"][:10] == row["HS Code"][:10] else "X", axis=1)
         merged["HS6_MATCH"] = merged.apply(lambda row: "O" if row["INV HS"][:6] == row["HS Code"][:6] else "X", axis=1)
