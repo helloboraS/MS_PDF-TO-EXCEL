@@ -47,17 +47,13 @@ def extract_format_b(pdf_path):
                 if not (line1 and line2):
                     i += 1
                     continue
-                    
 
                 try:
                     delivery_no = line1[1]
                     msf_index = next(j for j, p in enumerate(line1) if p.startswith("MSF-"))
                     manufacturer_part_no = " ".join(line1[2:msf_index])
-                    msf_index = next(j for j, p in enumerate(line1) if p.startswith("MSF-"))
                     ms_part_no = line1[msf_index]
-
                     model_no = line2[2] if len(line2) > 2 else "NA"
-
                     hts_code = line1[msf_index + 2]
                     country = line1[msf_index + 3]
                     ship_qty = line1[msf_index + 4]
@@ -121,6 +117,8 @@ with tab1:
 
 with tab2:
     uploaded_files_b = st.file_uploader("MS1279 PDF 업로드", type=["pdf"], accept_multiple_files=True, key="b")
+    master_file = st.file_uploader("📁 마스터파일 업로드 (엑셀)", type=["xlsx"], key="master")
+
     if uploaded_files_b:
         all_data = {}
         for uploaded_file in uploaded_files_b:
@@ -133,12 +131,16 @@ with tab2:
             all_data[sheet_name] = df
             st.subheader(f"{sheet_name}")
             st.dataframe(df)
+
         if all_data:
             excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
             with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
                 for name, df in all_data.items():
                     df.to_excel(writer, sheet_name=name, index=False)
+
                 merged_df = pd.concat(all_data.values(), ignore_index=True)
+
+                # 신고서용 시트 작성
                 filtered_df = pd.DataFrame({
                     "HS CODE": merged_df["HTS Code"],
                     "DESC + ORIGIN": merged_df.apply(
@@ -154,6 +156,13 @@ with tab2:
                     "Model No": merged_df["Model No"]
                 })
                 filtered_df.to_excel(writer, sheet_name="신고서용", index=False)
+
+                # 마스터 병합 시트
+                if master_file:
+                    master_df = pd.read_excel(master_file)
+                    result_df = merged_df.merge(master_df, how="left", on="Microsoft Part No.")
+                    result_df.to_excel(writer, sheet_name="병합결과", index=False)
+
             with open(excel_file.name, "rb") as f:
                 st.download_button(
                     label="📥 MS1279-PAYMENTS 엑셀 다운로드",
