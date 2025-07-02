@@ -323,14 +323,21 @@ with tab4:
             merged = df.merge(master_df, how="left", left_on="Item Number", right_on="PartNo_nohyphen")
 
             # 최종 컬럼 구성
-            result = merged[[
-                "Item Number",                 # 하이픈 없는 ITEM 번호
-                "Microsoft Part No.",         # MASTER에서 가져옴
-                "Part Description",           # MASTER에서 가져옴
+            expected_cols = [
+                "Item Number", "Microsoft Part No.", "Part Description",
                 "Ordered Qty", "Shipped Qty", "Unit", 
-                "Unit Price", "Amount",
-                "HS Code", "Origin"
-            ]]
+                "Unit Price", "Amount", "HS Code", "Origin"
+            ]
+
+            existing_cols = [col for col in expected_cols if col in merged.columns]
+
+            if not existing_cols:
+                st.warning("❗ 병합된 결과에서 기대한 컬럼들이 없습니다.")
+            else:
+                result = merged[existing_cols]
+                st.subheader(f"{sheet_name}")
+                st.dataframe(result)
+                all_data[sheet_name] = result
 
             # 보여주기
             sheet_name = os.path.splitext(uploaded_file.name)[0][:31]
