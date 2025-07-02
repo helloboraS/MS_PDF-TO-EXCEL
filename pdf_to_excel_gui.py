@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import pdfplumber
@@ -17,7 +16,7 @@ def extract_format_a(pdf_path):
                         "PO No": parts[1],
                         "SAP Order No": parts[2],
                         "Part Number": parts[3],
-                        "PART_DESCRIPTION": " ".join(parts[4:-6]),
+                        "Part Description": " ".join(parts[4:-6]),
                         "Model No": parts[-6],
                         "Country of Origin": parts[-5],
                         "Ship Qty": parts[-4],
@@ -47,8 +46,6 @@ def extract_format_b(pdf_path):
                 if not (line1 and line2):
                     i += 1
                     continue
-                    
-
                 try:
                     delivery_no = line1[1]
                     msf_index = next(j for j, p in enumerate(line1) if p.startswith("MSF-"))
@@ -73,14 +70,14 @@ def extract_format_b(pdf_path):
                         "Delivery No.": delivery_no,
                         "Manufacturer Part No.": manufacturer_part_no,
                         "Model No": model_no,
-                        "MICROSOFT_PART_NO": ms_part_no,
+                        "Microsoft Part No.": ms_part_no,
                         "HTS Code": hts_code,
                         "Country of Origin": country,
                         "Ship Qty": ship_qty,
                         "Unit Price": unit_price,
                         "Price UOM": price_uom,
                         "Extended Price": ext_price,
-                        "PART_DESCRIPTION": desc_clean
+                        "Part Description": desc_clean
                     }
                     records.append(record)
                     i += 2
@@ -140,17 +137,17 @@ with tab2:
                     df.to_excel(writer, sheet_name=name, index=False)
                 merged_df = pd.concat(all_data.values(), ignore_index=True)
                 filtered_df = pd.DataFrame({
-                    "HS_CODE": merged_df["HTS Code"],
+                    "HS CODE": merged_df["HTS Code"],
                     "DESC + ORIGIN": merged_df.apply(
-                        lambda row: row["PART_DESCRIPTION"]
+                        lambda row: row["Part Description"]
                         + (" MODEL: " + row["Model No"] if row["Model No"] != "NA" else "")
                         + " ORIGIN: " + row["Country of Origin"], axis=1),
-                    "PART NO.": "PART NO: " + merged_df["MICROSOFT_PART_NO"] + " (" + merged_df["Manufacturer Part No."] + ")",
+                    "PART NO.": "PART NO: " + merged_df["Microsoft Part No."] + " (" + merged_df["Manufacturer Part No."] + ")",
                     "Q'TY": merged_df["Ship Qty"],
                     "UOM": merged_df["Price UOM"],
                     "UNIT PRICE": merged_df["Unit Price"],
                     "TOTAL AMOUNT": merged_df["Extended Price"],
-                    "PART NO. FULL": merged_df["MICROSOFT_PART_NO"] + " (" + merged_df["Manufacturer Part No."] + ")",
+                    "PART NO. FULL": merged_df["Microsoft Part No."] + " (" + merged_df["Manufacturer Part No."] + ")",
                     "Model No": merged_df["Model No"]
                 })
                 filtered_df.to_excel(writer, sheet_name="신고서용", index=False)
@@ -160,7 +157,6 @@ with tab2:
                     data=f,
                     file_name="ms1279_payments_data.xlsx"
                 )
-
 
 with tab3:
     st.header("📒 마스터 데이터 비교")
@@ -176,7 +172,7 @@ with tab3:
         st.session_state["master_df"] = df
         st.success("✅ 마스터 파일이 저장되었습니다. 다음 실행에도 자동으로 불러옵니다.")
 
-    uploaded_excel = st.file_uploader("📥 비교 대상 엑셀 업로드 (MICROSOFT_PART_NO, 원산지, 수량, 단위, 단가, 금액, INV HS 포함)", type=["xlsx"], key="compare_excel")
+    uploaded_excel = st.file_uploader("📥 비교 대상 엑셀 업로드 (Microsoft Part No., 원산지, 수량, 단위, 단가, 금액, INV HS 포함)", type=["xlsx"], key="compare_excel")
 
     master_df = st.session_state.get("master_df")
 
@@ -188,43 +184,39 @@ with tab3:
         master_df = master_df.rename(columns=lambda x: x.strip())
         input_df = input_df.rename(columns=lambda x: x.strip())
 
-        merged = input_df.merge(master_df, how="left", on="MICROSOFT_PART_NO")
-        merged.columns = [col.strip().upper().replace(" ", "_") for col in merged.columns]
-        merged["HS_CODE"] = merged["HS_CODE"].apply(clean_code)
-        merged["INV_HS"] = merged["INV_HS"].apply(clean_code)
+        merged = input_df.merge(master_df, how="left", on="Microsoft Part No.")
+        merged["HS Code"] = merged["HS Code"].apply(clean_code)
+        merged["INV HS"] = merged["INV HS"].apply(clean_code)
 
-        merged["HS10_MATCH"] = merged.apply(lambda row: "O" if row["INV_HS"][:10] == row["HS_CODE"][:10] else "X", axis=1)
-        merged["HS6_MATCH"] = merged.apply(lambda row: "O" if row["INV_HS"][:6] == row["HS_CODE"][:6] else "X", axis=1)
+        merged["HS10_MATCH"] = merged.apply(lambda row: "O" if row["INV HS"][:10] == row["HS Code"][:10] else "X", axis=1)
+        merged["HS6_MATCH"] = merged.apply(lambda row: "O" if row["INV HS"][:6] == row["HS Code"][:6] else "X", axis=1)
+
+        merged["전파"] = merged["전파인증번호"].apply(lambda x: "O" if pd.notna(x) and str(x).strip() else "X")
+        merged["전기"] = merged["전기인증번호"].apply(lambda x: "O" if pd.notna(x) and str(x).strip() else "X")
 
         final_df = merged.copy()
 
-        # 시트 2 - 신고서
         invoice_sheet = pd.DataFrame({
-            "HS Code": final_df["HS_CODE"],
-            "PART_DESCRIPTION": final_df["PART_DESCRIPTION"] + ' ORIGIN:' + final_df["원산지"],
-            "MICROSOFT_PART_NO": "PART NO: " + final_df["MICROSOFT_PART_NO"],
+            "HS Code": final_df["HS Code"],
+            "Part Description": final_df["Part Description"] + ' ORIGIN:' + final_df["원산지"],
+            "Microsoft Part No.": "PART NO: " + final_df["Microsoft Part No."],
             "수량": final_df["수량"],
             "단위": final_df["단위"],
             "단가": final_df["단가"],
             "금액": final_df["금액"],
-            "MICROSOFT_PART_NO (2)": final_df["MICROSOFT_PART_NO"],
-            "전파인증여부": final_df["전파인증번호"].apply(lambda x: "O" if str(x).strip() else "X"),
-            "전기인증여부": final_df["전기인증번호"].apply(lambda x: "O" if str(x).strip() else "X"),
+            "전파": final_df["전파"],
+            "전기": final_df["전기"],
             "요건비대상사유": final_df["요건비대상사유"]
         })
 
-        # 시트 3 - 전파요건
         radio_req = (
-            final_df.groupby(["HS_CODE", "원산지", "모델명", "전파인증번호"], as_index=False)
+            final_df.groupby(["HS Code", "원산지", "모델명", "전파인증번호"], as_index=False)
             .agg({"수량": "sum"})
-            .rename(columns={"HS_CODE": "HS Code"})
         )
 
-        # 시트 4 - 전안요건
         safety_req = (
-            final_df.groupby(["기관", "HS_CODE", "원산지", "모델명", "전기인증번호", "정격전압"], as_index=False)
+            final_df.groupby(["기관", "HS Code", "원산지", "모델명", "전기인증번호", "정격전압"], as_index=False)
             .agg({"수량": "sum"})
-            .rename(columns={"HS_CODE": "HS Code"})
         )
 
         to_excel = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
@@ -238,7 +230,7 @@ with tab3:
             st.download_button(
                 label="📥 비교 결과 엑셀 다운로드",
                 data=f,
-                file_name="MS5673_Final.xlsx"
+                file_name="master_compare_result.xlsx"
             )
     elif master_df is None:
         st.warning("⚠️ 마스터 파일이 없습니다. 최초 1회 업로드가 필요합니다.")
