@@ -89,64 +89,33 @@ def extract_format_b(pdf_path):
 def extract_format_c(pdf_path):
     import re
     records = []
-    current_record = {}
-    item_no_pattern = re.compile(r"^(WES|C13|AWG)[\w\-]+")
     qty_line_pattern = re.compile(r"^\d+\s+\d+\s+\w+\s+\d+\.\d+\s+\d+\s+\d+\.\d+")
 
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
-            i = 0
-            while i < len(lines):
+            for i in range(len(lines)):
                 line = lines[i].strip()
 
-                # 1. Item Number
-                if item_no_pattern.match(line):
-                    current_record = {}
-                    current_record["Item Number"] = line
+                # 수량/단가/금액 포함된 라인
+                if qty_line_pattern.match(line):
+                    try:
+                        parts = line.split()
+                        prev_line = lines[i - 1].strip()  # 바로 위 줄에서 Item Number 추정
+                        item_number = prev_line.split()[0].strip()
 
-                    # 2. Description (다음 줄 포함)
-                    desc_lines = []
-                    j = i + 1
-                    while j < len(lines):
-                        next_line = lines[j].strip()
-                        if qty_line_pattern.match(next_line):
-                            break
-                        if not next_line.startswith("Customer line:") and not next_line.startswith("Export Code:"):
-                            desc_lines.append(next_line)
-                        j += 1
-                    current_record["Description"] = " ".join(desc_lines).replace("COO:", "").strip()
-                    i = j - 1
+                        record = {
+                            "Item Number": item_number.replace("-", ""),  # 하이픈 제거
+                            "Ordered Qty": parts[0],
+                            "Shipped Qty": parts[1],
+                            "Unit": parts[2],
+                            "Unit Price": parts[3],
+                            "Amount": parts[5]
+                        }
 
-                # 3. 수량/단가/금액
-                elif qty_line_pattern.match(line):
-                    parts = line.split()
-                    current_record["Ordered Qty"] = parts[0]
-                    current_record["Shipped Qty"] = parts[1]
-                    current_record["Unit"] = parts[2]
-                    current_record["Unit Price"] = parts[3]
-                    current_record["Amount"] = parts[5]
-
-                # 4. Microsoft Part No.
-                elif "Customer item:" in line:
-                    match_item = re.search(r"Customer item:\s*(MSF[-–‐]?\d+)", line)
-                    if match_item:
-                        current_record["Microsoft Part No."] = match_item.group(1).replace("–", "-")
-
-                # 5. Export Code / Origin
-                elif "Export Code:" in line:
-                    hscode = re.search(r"Export Code:\s*(\d{4}\.\d{2}\.\d{4})", line)
-                    origin = re.search(r"Origin:\s*(\w+)?", line)
-                    if hscode:
-                        current_record["HS Code"] = hscode.group(1).replace(".", "")
-                    if origin:
-                        current_record["Origin"] = origin.group(1)
-
-                    # 최종 추가
-                    records.append(current_record)
-                    current_record = {}
-
-                i += 1
+                        records.append(record)
+                    except Exception as e:
+                        continue
 
     return pd.DataFrame(records)
 
@@ -312,19 +281,42 @@ with tab3:
         st.warning("⚠️ 마스터 파일이 없습니다. 최초 1회 업로드가 필요합니다.")
 
 with tab4:
-    uploaded_files_c = st.file_uploader("MS1279 PDF Upload WESCO", type=["pdf"], accept_multiple_files=True, key="c")
-    if uploaded_files_c:
+    if "master_df" not in st.session_state:
+        if os.path.exists("MASTER_MS5673.xlsx"):
+            st.session_state["master_df"] = pd.read_excel("MASTER_MS5673.xlsx")
+
+    master_df = st.session_state.get("master_df")
+
+    uploaded_files_c = st.file_uploader("MS1279 PDF Upload (WESCO)", type=["pdf"], accept_multiple_files=True, key="c")
+    if uploaded_files_c and master_df is not None:
         all_data = {}
+        # 마스터 전처리
+        master_df["PartNo_nohyphen"] = master_df["Microsoft Part No."].astype(str).str.replace("-", "").str.strip()
+
         for uploaded_file in uploaded_files_c:
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
                 tmp_file.write(uploaded_file.read())
                 temp_pdf_path = tmp_file.name
             df = extract_format_c(temp_pdf_path)
             os.remove(temp_pdf_path)
+
+            # merge: Item Number <-> PartNo_nohyphen
+            merged = df.merge(master_df, how="left", left_on="Item Number", right_on="PartNo_nohyphen")
+            merged["Microsoft Part No."] = merged["Microsoft Part No."]
+            merged["Part Description"] = merged["Part Description"]
+
+            result = merged[[
+                "Item Number", "Microsoft Part No.", "Part Description", 
+                "Ordered Qty", "Shipped Qty", "Unit", "Unit Price", "Amount", 
+                "HS Code", "원산지"
+            ]].rename(columns={"원산지": "Origin"})
+
             sheet_name = os.path.splitext(uploaded_file.name)[0][:31]
-            all_data[sheet_name] = df
+            all_data[sheet_name] = result
             st.subheader(f"{sheet_name}")
-            st.dataframe(df)
+            st.dataframe(result)
+
+        # 다운로드 엑셀
         if all_data:
             excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
             with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
@@ -332,7 +324,9 @@ with tab4:
                     df.to_excel(writer, sheet_name=name, index=False)
             with open(excel_file.name, "rb") as f:
                 st.download_button(
-                    label="📥 MS1279-NEW FORMAT 엑셀 다운로드",
+                    label="📥 NEW FORMAT 결과 다운로드",
                     data=f,
-                    file_name="ms1279_Wesco.xlsx"
+                    file_name="MS1279_NEW_FORMAT_RESULT.xlsx"
                 )
+    elif master_df is None:
+        st.warning("⚠️ MASTER_MS5673.xlsx 파일이 필요합니다.")
