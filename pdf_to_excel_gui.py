@@ -2,11 +2,6 @@ import streamlit as st
 import pandas as pd
 import pdfplumber
 import tempfile
-import re
-import pytesseract
-from pdf2image import convert_from_path
-from PIL import Image
-import re
 import os
 
 def extract_format_a(pdf_path):
@@ -251,90 +246,3 @@ with tab3:
     elif master_df is None:
         st.warning("⚠️ 마스터 파일이 없습니다. 최초 1회 업로드가 필요합니다.")
 
-
-
-
-with tab4:
-    st.header("📕 WESCO 인보이스 OCR 변환")
-    uploaded_pdf = st.file_uploader("WESCO 인보이스 PDF 업로드 (OCR 기반)", type=["pdf"], key="ocr_wesco")
-    if uploaded_pdf:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
-            tmp_pdf.write(uploaded_pdf.read())
-            temp_path = tmp_pdf.name
-
-        images = convert_from_path(temp_path, dpi=300)
-        ocr_records = []
-
-        for img in images:
-            text = pytesseract.image_to_string(img, lang='eng')
-            lines = text.split('\n')
-
-            item_number = ""
-            part_no = ""
-            hts_code = ""
-            origin = ""
-            ordered_qty = shipped_qty = unit_price = amount = None
-            unit = "EA"
-
-            for i, line in enumerate(lines):
-                line_clean = line.strip()
-
-                if re.match(r"^(WES|C13|CPC)[\-\w]{4,}", line_clean.replace(" ", "").replace("–", "-")):
-                    item_number = line_clean.replace("–", "-").replace(" ", "")
-
-                if "Customer item:" in line and "MSF" in line:
-                    m = re.search(r"(MSF[-–]?\d+)", line)
-                    if m:
-                        part_no = m.group(1).replace("–", "-")
-
-                if "Export Code:" in line:
-                    hts = re.search(r"Export Code:\s*([\d\.]+)", line)
-                    org = re.search(r"Origin:\s*([A-Za-z]+)", line)
-                    if hts:
-                        hts_code = hts.group(1)
-                    if org:
-                        origin = org.group(1)
-
-                if "COO:" in line and not origin:
-                    m = re.search(r"COO:\s*([A-Za-z]+)", line)
-                    if m:
-                        origin = m.group(1)
-
-                if re.match(r"^\d+\s+\d+\s+EA\s+\d+(\.\d+)?\s+\d+\s+\d+(\.\d+)?", line):
-                    parts = line.strip().split()
-                    try:
-                        ordered_qty = int(parts[0])
-                        shipped_qty = int(parts[1])
-                        unit_price = float(parts[3])
-                        amount = float(parts[5])
-                    except:
-                        continue
-
-                if item_number and part_no and hts_code and ordered_qty:
-                    ocr_records.append({
-                        "Item Number": item_number,
-                        "Microsoft Part No.": part_no,
-                        "HTS Code": hts_code,
-                        "Country of Origin": origin,
-                        "Ordered Qty": ordered_qty,
-                        "Shipped Qty": shipped_qty,
-                        "Unit": unit,
-                        "Unit Price": unit_price,
-                        "Amount": amount
-                    })
-                    item_number = part_no = hts_code = origin = ""
-                    ordered_qty = shipped_qty = unit_price = amount = None
-
-        df = pd.DataFrame(ocr_records)
-        st.dataframe(df)
-
-        if not df.empty:
-            to_excel = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
-            df.to_excel(to_excel.name, index=False)
-
-            with open(to_excel.name, "rb") as f:
-                st.download_button(
-                    label="📥 OCR 인보이스 엑셀 다운로드",
-                    data=f,
-                    file_name="WESCO_OCR_invoice.xlsx"
-                )
