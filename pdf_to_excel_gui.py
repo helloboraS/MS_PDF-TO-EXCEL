@@ -187,7 +187,10 @@ with tab3:
         input_df = pd.read_excel(uploaded_excel)
         master_df = master_df.rename(columns=lambda x: x.strip())
         input_df = input_df.rename(columns=lambda x: x.strip())
-
+        
+        input_df["Microsoft Part No."] = input_df["Microsoft Part No."].astype(str).str.strip()
+        master_df["Microsoft Part No."] = master_df["Microsoft Part No."].astype(str).str.strip()
+        
         merged = input_df.merge(master_df, how="left", on="Microsoft Part No.")
         merged["INV HS"] = merged["INV HS"].apply(clean_code)
         
