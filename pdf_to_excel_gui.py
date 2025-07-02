@@ -206,7 +206,7 @@ with tab3:
             "금액": final_df["금액"],
             "전파": final_df["전파"],
             "전기": final_df["전기"],
-            "요건비대상사유": final_df["요건비대상사유"]
+            "요건비대상사유": final_df["요건비대상"]
         })
 
         radio_req = (
