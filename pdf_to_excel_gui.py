@@ -189,17 +189,17 @@ with tab3:
         input_df = input_df.rename(columns=lambda x: x.strip())
 
         merged = input_df.merge(master_df, how="left", on="Microsoft Part No.")
-        merged["HS CODE"] = merged["HS CODE"].apply(clean_code)
+        merged["HS Code"] = merged["HS Code"].apply(clean_code)
         merged["INV HS"] = merged["INV HS"].apply(clean_code)
 
-        merged["HS10_MATCH"] = merged.apply(lambda row: "O" if row["INV HS"][:10] == row["HS CODE"][:10] else "X", axis=1)
-        merged["HS6_MATCH"] = merged.apply(lambda row: "O" if row["INV HS"][:6] == row["HS CODE"][:6] else "X", axis=1)
+        merged["HS10_MATCH"] = merged.apply(lambda row: "O" if row["INV HS"][:10] == row["HS Code"][:10] else "X", axis=1)
+        merged["HS6_MATCH"] = merged.apply(lambda row: "O" if row["INV HS"][:6] == row["HS Code"][:6] else "X", axis=1)
 
         final_df = merged.copy()
 
         # 시트 2 - 신고서
         invoice_sheet = pd.DataFrame({
-            "HS Code": final_df["HS CODE"],
+            "HS Code": final_df["HS Code"],
             "Part Description": final_df["Part Description"] + ' ORIGIN:' + final_df["원산지"],
             "Microsoft Part No.": "PART NO: " + final_df["Microsoft Part No."],
             "수량": final_df["수량"],
@@ -211,16 +211,16 @@ with tab3:
 
         # 시트 3 - 전파요건
         radio_req = (
-            final_df.groupby(["HS CODE", "원산지", "모델명", "전파인증번호"], as_index=False)
+            final_df.groupby(["HS Code", "원산지", "모델명", "전파인증번호"], as_index=False)
             .agg({"수량": "sum"})
-            .rename(columns={"HS CODE": "HS Code"})
+            .rename(columns={"HS Code": "HS Code"})
         )
 
         # 시트 4 - 전안요건
         safety_req = (
-            final_df.groupby(["기관", "HS CODE", "원산지", "모델명", "전기인증번호", "정격전압"], as_index=False)
+            final_df.groupby(["기관", "HS Code", "원산지", "모델명", "전기인증번호", "정격전압"], as_index=False)
             .agg({"수량": "sum"})
-            .rename(columns={"HS CODE": "HS Code"})
+            .rename(columns={"HS Code": "HS Code"})
         )
 
         to_excel = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
