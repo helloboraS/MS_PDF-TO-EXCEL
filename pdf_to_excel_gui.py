@@ -190,8 +190,8 @@ with tab3:
         merged["전기"] = merged["전기인증번호"].apply(lambda x: "O" if pd.notna(x) and str(x).strip() else "X")
 
         final_df = merged.copy()
-        final_df["HS Code"] = final_df["HS Code"].astype(str)
-        final_df["INV HS"] = final_df["INV HS"].astype(str)
+        final_df["HS Code"] = final_df["HS Code"].astype(str).apply(lambda x: f"'{x}")
+        final_df["INV HS"] = final_df["INV HS"].astype(str).apply(lambda x: f"'{x}")
         if "무역거래처상호" in final_df.columns:
             final_df.drop(columns=["무역거래처상호"], inplace=True)
 
