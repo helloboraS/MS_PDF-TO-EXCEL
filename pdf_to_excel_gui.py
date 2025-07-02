@@ -3,6 +3,7 @@ import pandas as pd
 import pdfplumber
 import tempfile
 import os
+import re
 
 def extract_format_a(pdf_path):
     records = []
@@ -83,6 +84,70 @@ def extract_format_b(pdf_path):
                     i += 2
                 except Exception:
                     i += 1
+    return pd.DataFrame(records)
+
+def extract_format_c(pdf_path):
+    import re
+    records = []
+    current_record = {}
+    item_no_pattern = re.compile(r"^(WES|C13|AWG)[\w\-]+")
+    qty_line_pattern = re.compile(r"^\d+\s+\d+\s+\w+\s+\d+\.\d+\s+\d+\s+\d+\.\d+")
+
+    with pdfplumber.open(pdf_path) as pdf:
+        for page in pdf.pages:
+            lines = page.extract_text().split("\n")
+            i = 0
+            while i < len(lines):
+                line = lines[i].strip()
+
+                # 1. Item Number
+                if item_no_pattern.match(line):
+                    current_record = {}
+                    current_record["Item Number"] = line
+
+                    # 2. Description (다음 줄 포함)
+                    desc_lines = []
+                    j = i + 1
+                    while j < len(lines):
+                        next_line = lines[j].strip()
+                        if qty_line_pattern.match(next_line):
+                            break
+                        if not next_line.startswith("Customer line:") and not next_line.startswith("Export Code:"):
+                            desc_lines.append(next_line)
+                        j += 1
+                    current_record["Description"] = " ".join(desc_lines).replace("COO:", "").strip()
+                    i = j - 1
+
+                # 3. 수량/단가/금액
+                elif qty_line_pattern.match(line):
+                    parts = line.split()
+                    current_record["Ordered Qty"] = parts[0]
+                    current_record["Shipped Qty"] = parts[1]
+                    current_record["Unit"] = parts[2]
+                    current_record["Unit Price"] = parts[3]
+                    current_record["Amount"] = parts[5]
+
+                # 4. Microsoft Part No.
+                elif "Customer item:" in line:
+                    match_item = re.search(r"Customer item:\s*(MSF[-–‐]?\d+)", line)
+                    if match_item:
+                        current_record["Microsoft Part No."] = match_item.group(1).replace("–", "-")
+
+                # 5. Export Code / Origin
+                elif "Export Code:" in line:
+                    hscode = re.search(r"Export Code:\s*(\d{4}\.\d{2}\.\d{4})", line)
+                    origin = re.search(r"Origin:\s*(\w+)?", line)
+                    if hscode:
+                        current_record["HS Code"] = hscode.group(1).replace(".", "")
+                    if origin:
+                        current_record["Origin"] = origin.group(1)
+
+                    # 최종 추가
+                    records.append(current_record)
+                    current_record = {}
+
+                i += 1
+
     return pd.DataFrame(records)
 
 st.set_page_config(page_title="MS Helper", layout="wide")
@@ -246,3 +311,28 @@ with tab3:
     elif master_df is None:
         st.warning("⚠️ 마스터 파일이 없습니다. 최초 1회 업로드가 필요합니다.")
 
+with tab4:
+    uploaded_files_c = st.file_uploader("MS1279 PDF Upload WESCO", type=["pdf"], accept_multiple_files=True, key="c")
+    if uploaded_files_c:
+        all_data = {}
+        for uploaded_file in uploaded_files_c:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+                tmp_file.write(uploaded_file.read())
+                temp_pdf_path = tmp_file.name
+            df = extract_format_c(temp_pdf_path)
+            os.remove(temp_pdf_path)
+            sheet_name = os.path.splitext(uploaded_file.name)[0][:31]
+            all_data[sheet_name] = df
+            st.subheader(f"{sheet_name}")
+            st.dataframe(df)
+        if all_data:
+            excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
+            with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
+                for name, df in all_data.items():
+                    df.to_excel(writer, sheet_name=name, index=False)
+            with open(excel_file.name, "rb") as f:
+                st.download_button(
+                    label="📥 MS1279-NEW FORMAT 엑셀 다운로드",
+                    data=f,
+                    file_name="ms1279_Wesco.xlsx"
+                )
