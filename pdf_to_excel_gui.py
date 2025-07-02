@@ -225,7 +225,7 @@ with tab3:
             st.download_button(
                 label="📥 비교 결과 엑셀 다운로드",
                 data=f,
-                file_name="master_compare_result.xlsx"
+                file_name="MS5673_신고.xlsx"
             )
     elif master_df is None:
         st.warning("⚠️ 마스터 파일이 없습니다. 최초 1회 업로드가 필요합니다.")
