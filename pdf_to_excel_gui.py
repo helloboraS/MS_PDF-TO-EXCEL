@@ -140,7 +140,7 @@ with tab2:
                     df.to_excel(writer, sheet_name=name, index=False)
                 merged_df = pd.concat(all_data.values(), ignore_index=True)
                 filtered_df = pd.DataFrame({
-                    "HS CODE": merged_df["HTS Code"],
+                    "HS_CODE": merged_df["HTS Code"],
                     "DESC + ORIGIN": merged_df.apply(
                         lambda row: row["Part Description"]
                         + (" MODEL: " + row["Model No"] if row["Model No"] != "NA" else "")
@@ -189,38 +189,42 @@ with tab3:
         input_df = input_df.rename(columns=lambda x: x.strip())
 
         merged = input_df.merge(master_df, how="left", on="Microsoft Part No.")
-        merged["HS Code"] = merged["HS Code"].apply(clean_code)
-        merged["INV HS"] = merged["INV HS"].apply(clean_code)
+        merged.columns = [col.strip().upper().replace(" ", "_") for col in merged.columns]
+        merged["HS_CODE"] = merged["HS_CODE"].apply(clean_code)
+        merged["INV_HS"] = merged["INV_HS"].apply(clean_code)
 
-        merged["HS10_MATCH"] = merged.apply(lambda row: "O" if row["INV HS"][:10] == row["HS Code"][:10] else "X", axis=1)
-        merged["HS6_MATCH"] = merged.apply(lambda row: "O" if row["INV HS"][:6] == row["HS Code"][:6] else "X", axis=1)
+        merged["HS10_MATCH"] = merged.apply(lambda row: "O" if row["INV_HS"][:10] == row["HS_CODE"][:10] else "X", axis=1)
+        merged["HS6_MATCH"] = merged.apply(lambda row: "O" if row["INV_HS"][:6] == row["HS_CODE"][:6] else "X", axis=1)
 
         final_df = merged.copy()
 
         # 시트 2 - 신고서
         invoice_sheet = pd.DataFrame({
-            "HS Code": final_df["HS Code"],
+            "HS Code": final_df["HS_CODE"],
             "Part Description": final_df["Part Description"] + ' ORIGIN:' + final_df["원산지"],
             "Microsoft Part No.": "PART NO: " + final_df["Microsoft Part No."],
             "수량": final_df["수량"],
             "단위": final_df["단위"],
             "단가": final_df["단가"],
             "금액": final_df["금액"],
-            "Microsoft Part No. (2)": final_df["Microsoft Part No."]
+            "Microsoft Part No. (2)": final_df["Microsoft Part No."],
+            "전파인증여부": final_df["전파인증번호"].apply(lambda x: "O" if str(x).strip() else "X"),
+            "전기인증여부": final_df["전기인증번호"].apply(lambda x: "O" if str(x).strip() else "X"),
+            "요건비대상사유": final_df["요건비대상사유"]
         })
 
         # 시트 3 - 전파요건
         radio_req = (
-            final_df.groupby(["HS Code", "원산지", "모델명", "전파인증번호"], as_index=False)
+            final_df.groupby(["HS_CODE", "원산지", "모델명", "전파인증번호"], as_index=False)
             .agg({"수량": "sum"})
-            .rename(columns={"HS Code": "HS Code"})
+            .rename(columns={"HS_CODE": "HS Code"})
         )
 
         # 시트 4 - 전안요건
         safety_req = (
-            final_df.groupby(["기관", "HS Code", "원산지", "모델명", "전기인증번호", "정격전압"], as_index=False)
+            final_df.groupby(["기관", "HS_CODE", "원산지", "모델명", "전기인증번호", "정격전압"], as_index=False)
             .agg({"수량": "sum"})
-            .rename(columns={"HS Code": "HS Code"})
+            .rename(columns={"HS_CODE": "HS Code"})
         )
 
         to_excel = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
@@ -234,7 +238,7 @@ with tab3:
             st.download_button(
                 label="📥 비교 결과 엑셀 다운로드",
                 data=f,
-                file_name="master_compare_result.xlsx"
+                file_name="MS5673_Final.xlsx"
             )
     elif master_df is None:
         st.warning("⚠️ 마스터 파일이 없습니다. 최초 1회 업로드가 필요합니다.")
