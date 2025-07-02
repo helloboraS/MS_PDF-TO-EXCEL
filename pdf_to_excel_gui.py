@@ -86,12 +86,12 @@ def extract_format_b(pdf_path):
     return pd.DataFrame(records)
 
 st.set_page_config(page_title="PDF 항목 추출기", layout="wide")
-st.title("Microsoft Helper♥")
+st.title("Microsoft Helper ♥")
 
-tab1, tab2, tab3 = st.tabs(["📘 MS1056", "📗 MS1279-PAYMENTS", "📒 마스터 비교"])
+tab1, tab2, tab3 = st.tabs(["📘 MS1056", "📗 MS1279-PAYMENTS", "📒 MS1279-MASTER 비교"])
 
 with tab1:
-    uploaded_files_a = st.file_uploader("MS1056 PDF 업로드", type=["pdf"], accept_multiple_files=True, key="a")
+    uploaded_files_a = st.file_uploader("MS1056 PDF Upload", type=["pdf"], accept_multiple_files=True, key="a")
     if uploaded_files_a:
         all_data = {}
         for uploaded_file in uploaded_files_a:
@@ -117,7 +117,7 @@ with tab1:
                 )
 
 with tab2:
-    uploaded_files_b = st.file_uploader("MS1279 PDF 업로드", type=["pdf"], accept_multiple_files=True, key="b")
+    uploaded_files_b = st.file_uploader("MS1279 PDF Upload", type=["pdf"], accept_multiple_files=True, key="b")
     if uploaded_files_b:
         all_data = {}
         for uploaded_file in uploaded_files_b:
