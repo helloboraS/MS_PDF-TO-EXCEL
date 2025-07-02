@@ -2,9 +2,8 @@ import streamlit as st
 import pandas as pd
 import pdfplumber
 import tempfile
-import os
 import re
-
+import os
 
 def extract_format_a(pdf_path):
     records = []
@@ -85,51 +84,6 @@ def extract_format_b(pdf_path):
                     i += 2
                 except Exception:
                     i += 1
-    return pd.DataFrame(records)
-
-def extract_format_c(pdf_path):
-    import re
-    import pdfplumber
-    import pandas as pd
-
-    records = []
-    current = {}
-
-    with pdfplumber.open(pdf_path) as pdf:
-        for page in pdf.pages:
-            lines = page.extract_text().split("\n")
-            for i, line in enumerate(lines):
-                # 수량, 단가, 금액이 있는 라인
-                if re.search(r"\b\d+\s+\d+\s+EA\s+\d+\.\d+\s+\d+\s+\d+\.\d+", line):
-                    parts = line.split()
-                    item_number_raw = parts[0]
-                    current = {
-                        "Item Number": item_number_raw.replace("-", "").strip(),
-                        "Ordered Qty": parts[2],
-                        "Shipped Qty": parts[3],
-                        "Unit": parts[4],
-                        "Unit Price": parts[5],
-                        "Amount": parts[7],
-                        "Microsoft Part No.": "",
-                        "HS Code": "",
-                        "Origin": ""
-                    }
-
-                elif "Customer item:" in line:
-                    match = re.search(r"Customer item:\s*(MSF[-–‐]?\d+)", line)
-                    if match:
-                        current["Microsoft Part No."] = match.group(1).replace("–", "-").strip()
-
-                elif "Export Code:" in line:
-                    hs_match = re.search(r"Export Code:\s*(\d{4}\.\d{2}\.\d{4})", line)
-                    origin_match = re.search(r"Origin:\s*([A-Za-z]+)", line)
-                    if hs_match:
-                        current["HS Code"] = hs_match.group(1).replace(".", "").strip()
-                    if origin_match:
-                        current["Origin"] = origin_match.group(1).strip()
-                    records.append(current)
-                    current = {}
-
     return pd.DataFrame(records)
 
 st.set_page_config(page_title="MS Helper", layout="wide")
@@ -293,60 +247,81 @@ with tab3:
     elif master_df is None:
         st.warning("⚠️ 마스터 파일이 없습니다. 최초 1회 업로드가 필요합니다.")
 
+
+
+
 with tab4:
-    #st.header("📕 MS1279-WESCO")
-
-    # 마스터 로딩 (최초 1회만)
-    if "master_df" not in st.session_state:
-        if os.path.exists("MASTER_MS5673.xlsx"):
-            st.session_state["master_df"] = pd.read_excel("MASTER_MS5673.xlsx")
-
-    master_df = st.session_state.get("master_df")
-
-    # PDF 업로드
-    uploaded_files_c = st.file_uploader("MS1279 PDF Upload (WESCO)", type=["pdf"], accept_multiple_files=True, key="c")
-
-    if uploaded_files_c and master_df is not None:
-        # 마스터 전처리: 하이픈 없는 Part No 컬럼 생성
-        master_df["PartNo_nohyphen"] = master_df["Microsoft Part No."].astype(str).str.replace("-", "").str.strip()
-
+    uploaded_files_wesco = st.file_uploader("WESCO 인보이스 PDF 업로드", type=["pdf"], accept_multiple_files=True, key="wesco")
+    if uploaded_files_wesco:
         all_data = {}
-        for uploaded_file in uploaded_files_c:
+        for uploaded_file in uploaded_files_wesco:
+        sheet_name = os.path.splitext(uploaded_file.name)[0][:31]
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
                 tmp_file.write(uploaded_file.read())
                 temp_pdf_path = tmp_file.name
+            records = []
+            with pdfplumber.open(temp_pdf_path) as pdf:
+                for page in pdf.pages:
+                    text = page.extract_text()
+                    lines = text.split("\n") if text else []
+                    item_number = ""
+                    part_no = ""
+                    for i, line in enumerate(lines):
+                        if "Customer item:" in line and "MSF-" in line:
+                            item_number = ""
+                            match_item = re.search(r"Customer line: (\d+)", line)
+                            match_part = re.search(r"(MSF[-–]\d{6})", line)
+                            if match_item:
+                                item_number = match_item.group(1).strip()
+                            if match_part:
+                                part_no = match_part.group(1).strip()
 
-            # PDF 데이터 추출
-            df = extract_format_c(temp_pdf_path)
+                        if re.match(r"^\d+\s+\d+\s+EA\s+[\d\.]+\s+\d+\s+[\d\.]+", line):
+                            parts = line.strip().split()
+                            try:
+                                ordered_qty = int(parts[0])
+                                shipped_qty = int(parts[1])
+                                unit = parts[2]
+                                unit_price = float(parts[3])
+                                amount = float(parts[5])
+                            except:
+                                continue
+
+                            # 뒤쪽 줄에서 코드 정보 추출
+                            for j in range(i + 1, min(i + 5, len(lines))):
+                                if "Export Code:" in lines[j]:
+                                    code_line = lines[j]
+                                    break
+                            else:
+                                code_line = ""
+
+                            hts = ""
+                            origin = ""
+                            match_hts = re.search(r"Export Code:\s+(\d+\.\d+\.\d+)", code_line)
+                            match_origin = re.search(r"Origin:\s+(\w+)", code_line)
+                            if match_hts:
+                                hts = match_hts.group(1)
+                            if match_origin:
+                                origin = match_origin.group(1)
+
+                            records.append({
+                                "Item Number": item_number,
+                                "Microsoft Part No.": part_no,
+                                "HTS Code": hts,
+                                "Country of Origin": origin,
+                                "Ordered Qty": ordered_qty,
+                                "Shipped Qty": shipped_qty,
+                                "Unit": unit,
+                                "Unit Price": unit_price,
+                                "Amount": amount
+                            })
             os.remove(temp_pdf_path)
-
-            # PDF의 Item Number ↔ MASTER의 PartNo_nohyphen 매핑
-            merged = df.merge(master_df, how="left", left_on="Item Number", right_on="PartNo_nohyphen")
-
-            # 최종 컬럼 구성
-            expected_cols = [
-                "Item Number", "Microsoft Part No.", "Part Description",
-                "Ordered Qty", "Shipped Qty", "Unit", 
-                "Unit Price", "Amount", "HS Code", "Origin"
-            ]
-
-            existing_cols = [col for col in expected_cols if col in merged.columns]
-
-            if not existing_cols:
-                st.warning("❗ 병합된 결과에서 기대한 컬럼들이 없습니다.")
-            else:
-                result = merged[existing_cols]
-                st.subheader(f"{sheet_name}")
-                st.dataframe(result)
-                all_data[sheet_name] = result
-
-            # 보여주기
+            df = pd.DataFrame(records)
             sheet_name = os.path.splitext(uploaded_file.name)[0][:31]
-            all_data[sheet_name] = result
+            all_data[sheet_name] = df
             st.subheader(f"{sheet_name}")
-            st.dataframe(result)
+            st.dataframe(df)
 
-        # Excel 다운로드 제공
         if all_data:
             excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
             with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
@@ -354,10 +329,7 @@ with tab4:
                     df.to_excel(writer, sheet_name=name, index=False)
             with open(excel_file.name, "rb") as f:
                 st.download_button(
-                    label="📥 NEW FORMAT 결과 다운로드",
+                    label="📥 WESCO 인보이스 엑셀 다운로드",
                     data=f,
-                    file_name="MS1279_NEW_FORMAT_RESULT.xlsx"
+                    file_name="wesco_invoice_data.xlsx"
                 )
-
-    elif master_df is None:
-        st.warning("⚠️ MASTER_MS5673.xlsx 파일이 필요합니다. 먼저 업로드해주세요.")
