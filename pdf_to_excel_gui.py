@@ -162,12 +162,11 @@ with tab3:
     st.header("📒 마스터 데이터 비교")
 
     if "master_df" not in st.session_state:
-    if not os.path.exists("MASTER_MS5673.xlsx"):
-        st.warning("⚠️ MASTER_MS5673.xlsx 파일이 현재 디렉토리에 존재하지 않습니다.")
+        if not os.path.exists("MASTER_MS5673.xlsx"):
+            st.warning("⚠️ MASTER_MS5673.xlsx 파일이 현재 디렉토리에 존재하지 않습니다.")
         if os.path.exists("MASTER_MS5673.xlsx"):
             st.session_state["master_df"] = pd.read_excel("MASTER_MS5673.xlsx")
 
-    
     uploaded_excel = st.file_uploader("📥 비교 대상 엑셀 업로드 (Microsoft Part No., 원산지, 수량, 단위, 단가, 금액, INV HS 포함)", type=["xlsx"], key="compare_excel")
 
     master_df = st.session_state.get("master_df")
