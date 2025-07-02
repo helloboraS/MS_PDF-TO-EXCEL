@@ -255,7 +255,7 @@ with tab4:
     if uploaded_files_wesco:
         all_data = {}
         for uploaded_file in uploaded_files_wesco:
-        sheet_name = os.path.splitext(uploaded_file.name)[0][:31]
+            sheet_name = os.path.splitext(uploaded_file.name)[0][:31]
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
                 tmp_file.write(uploaded_file.read())
                 temp_pdf_path = tmp_file.name
