@@ -180,7 +180,6 @@ with tab3:
         input_df = input_df.rename(columns=lambda x: x.strip())
 
         merged = input_df.merge(master_df, how="left", on="Microsoft Part No.")
-        merged["HS Code"] = merged["HS Code"].apply(clean_code)
         merged["INV HS"] = merged["INV HS"].apply(clean_code)
         
     def fix_hscode(code):
