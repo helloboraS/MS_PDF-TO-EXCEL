@@ -5,7 +5,7 @@ import tempfile
 import os
 
 def extract_format_a(pdf_path):
-records = []
+    records = []
 with pdfplumber.open(pdf_path) as pdf:
 for page in pdf.pages:
 lines = page.extract_text().split("\n")
@@ -34,7 +34,7 @@ records[-1]["HTS Description"] = " ".join(parts[2:])
 return pd.DataFrame(records)
 
 def extract_format_b(pdf_path):
-records = []
+    records = []
 with pdfplumber.open(pdf_path) as pdf:
 for page in pdf.pages:
 lines = page.extract_text().split("\n")
