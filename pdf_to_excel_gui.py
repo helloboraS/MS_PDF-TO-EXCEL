@@ -428,17 +428,6 @@ with tab4:
                     data=f,
                     file_name="wesco_invoice.xlsx"
                 )
-
-
-            excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
-            final.to_excel(excel_file.name, index=False, sheet_name="WESCO_MERGED")
-
-            with open(excel_file.name, "rb") as f:
-                st.download_button(
-                    label="엑셀 다운로드",
-                    data=f,
-                    file_name="wesco_invoice.xlsx"
-                )
         else:
             st.warning("유효한 데이터를 추출할 수 없습니다.")
     elif "master_df" not in st.session_state:
