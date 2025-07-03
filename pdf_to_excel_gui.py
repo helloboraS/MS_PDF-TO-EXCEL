@@ -150,7 +150,7 @@ with tab2:
                 else:
                     merged = merged_df.copy()
 
-filtered_df = pd.DataFrame({
+    filtered_df = pd.DataFrame({
                     "HS CODE": merged_df["HTS Code"],
                     "DESC + ORIGIN": merged_df.apply(
                         lambda row: row["Part Description"]
@@ -172,7 +172,7 @@ filtered_df = pd.DataFrame({
                     file_name="ms1279_payments_data.xlsx"
                 )
 
-with tab3:
+    with tab3:
     # st.header("📒 마스터 데이터 비교")
 
     if "master_df" not in st.session_state:
