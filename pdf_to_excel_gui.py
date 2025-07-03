@@ -151,20 +151,20 @@ with tab2:
                     merged = merged_df.copy()
 
     filtered_df = pd.DataFrame({
-                    "HS CODE": merged_df["HTS Code"],
-                    "DESC + ORIGIN": merged_df.apply(
+                    "HS CODE": merged["HTS Code"],
+                    "DESC + ORIGIN": merged.apply(
                         lambda row: row["Part Description"]
                         + (" MODEL: " + row["Model No"] if row["Model No"] != "NA" else "")
                         + " ORIGIN: " + row["Country of Origin"], axis=1),
-                    "PART NO.": "PART NO: " + merged_df["Microsoft Part No."] + " (" + merged_df["Manufacturer Part No."] + ")",
-                    "Q'TY": merged_df["Ship Qty"],
-                    "UOM": merged_df["Price UOM"],
-                    "UNIT PRICE": merged_df["Unit Price"],
-                    "TOTAL AMOUNT": merged_df["Extended Price"],
-                    "PART NO. FULL": merged_df["Microsoft Part No."] + " (" + merged_df["Manufacturer Part No."] + ")",
-                    "Model No": merged_df["Model No"]
+                    "PART NO.": "PART NO: " + merged["Microsoft Part No."] + " (" + merged["Manufacturer Part No."] + ")",
+                    "Q'TY": merged["Ship Qty"],
+                    "UOM": merged["Price UOM"],
+                    "UNIT PRICE": merged["Unit Price"],
+                    "TOTAL AMOUNT": merged["Extended Price"],
+                    "PART NO. FULL": merged["Microsoft Part No."] + " (" + merged["Manufacturer Part No."] + ")",
+                    "Model No": merged["Model No"]
                 })
-                filtered_df.to_excel(writer, sheet_name="신고서용", index=False)
+            filtered_df.to_excel(writer, sheet_name="신고서용", index=False)
             with open(excel_file.name, "rb") as f:
                 st.download_button(
                     label="📥 MS1279-PAYMENTS 엑셀 다운로드",
