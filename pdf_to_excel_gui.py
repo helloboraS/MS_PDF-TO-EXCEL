@@ -9,7 +9,7 @@ def extract_format_a(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
-            for line in lines:
+            for line in lines if isinstance(line, str):
                 parts = line.split()
                 if len(parts) >= 12 and parts[2].isdigit() and parts[-4].isdigit():
                     record = {
@@ -413,7 +413,7 @@ with tab4:
     export_codes = []
     coos = []
 
-    for line in lines:
+    for line in lines if isinstance(line, str):
         export_match = re.search(r"Export Code:\s*([\d\.]+)", line)
         coo_match = re.search(r"Origin:\s*([A-Za-z]+)", line)
 
