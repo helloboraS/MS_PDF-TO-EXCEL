@@ -312,8 +312,8 @@ if master_df is None:
 
 
 with tab4:
-    #st.header("📕 MS1279-WESCO 인보이스 추출 (특수문자 정제 포함 최종)")
-    uploaded_file = st.file_uploader("WESCO 인보이스 PDF 업로드", type=["pdf"], key="wesco_bbox_unicodefix")
+    st.header("📕 MS1279-WESCO 인보이스 추출 (요건비대상 추가, 전파/전기 제외)")
+    uploaded_file = st.file_uploader("WESCO 인보이스 PDF 업로드", type=["pdf"], key="wesco_bbox_final_nocert")
     if uploaded_file and "master_df" in st.session_state:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
             tmp_file.write(uploaded_file.read())
@@ -371,8 +371,7 @@ with tab4:
 
             # 병합
             columns_to_pull = [
-                "Microsoft Part No.", "clean_code", "Part Description", "HS Code",
-                "전파인증번호", "전기인증번호", "모델명", "기관", "정격전압"
+                "Microsoft Part No.", "clean_code", "Part Description", "HS Code", "요건비대상사유"
             ]
             merged = wesco_df.merge(master_df[columns_to_pull], left_on="clean_item", right_on="clean_code", how="left")
 
@@ -382,17 +381,17 @@ with tab4:
             st.dataframe(merged[[
                 "Item Number", "Microsoft Part No.", "Part Description",
                 "Ordered Qty", "Shipped Qty", "UM", "Unit Price", "Amount",
-                "HS Code", "전파인증번호", "전기인증번호", "모델명", "기관", "정격전압"
+                "HS Code", "요건비대상사유"
             ]])
 
             excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
-            merged.to_excel(excel_file.name, index=False, sheet_name="WESCO_MASTER_MERGED")
+            merged.to_excel(excel_file.name, index=False, sheet_name="WESCO_MERGED")
 
             with open(excel_file.name, "rb") as f:
                 st.download_button(
-                    label="엑셀 다운로드",
+                    label="📥 요건비대상 포함 엑셀 다운로드",
                     data=f,
-                    file_name="wesco_invoice_final_unicodefix.xlsx"
+                    file_name="wesco_invoice_yogunfree.xlsx"
                 )
         else:
             st.warning("유효한 데이터를 추출할 수 없습니다.")
