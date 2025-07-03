@@ -387,6 +387,23 @@ with tab4:
 
             # 누락된 항목 처리
             final["Microsoft Part No."] = final["Microsoft Part No."].fillna("신규코드")
+
+
+            # 원산지 추출
+            coo_lines = [w["text"] for w in words if "COO:" in w["text"] or "Origin:" in w["text"]]
+            origin_map = {}
+            current_origin = ""
+            for line in coo_lines:
+                if "COO:" in line:
+                    match = re.search(r"COO:\s*(\S+)", line)
+                    if match:
+                        current_origin = match.group(1)
+                elif "Origin:" in line and not current_origin:
+                    match = re.search(r"Origin:\s*(\S+)", line)
+                    if match:
+                        current_origin = match.group(1)
+            final["Country of Origin"] = current_origin
+
             final["Part Description"] = final["Part Description"].fillna(final["Description"])
 
             st.dataframe(final[[
@@ -396,25 +413,15 @@ with tab4:
             ]])
 # 최종 저장 열 명시적으로 지정 → clean_ 열 완전 제외
             columns_to_export = [
+ 
                 "Item Number", "Microsoft Part No.", "Part Description",
                 "Ordered Qty", "Shipped Qty", "UM", "Unit Price", "Amount",
-                "HS Code", "요건비대상"
+                "HS Code", "요건비대상", "Country of Origin"
             ]
             final_to_export = final[columns_to_export]
 
             excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
             final_to_export.to_excel(excel_file.name, index=False, sheet_name="WESCO_MERGED")
-
-            with open(excel_file.name, "rb") as f:
-                st.download_button(
-                    label="엑셀 다운로드",
-                    data=f,
-                    file_name="wesco_invoice.xlsx"
-                )
-
-
-            excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
-            final.to_excel(excel_file.name, index=False, sheet_name="WESCO_MERGED")
 
             with open(excel_file.name, "rb") as f:
                 st.download_button(
