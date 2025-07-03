@@ -312,71 +312,40 @@ if master_df is None:
 
 
 with tab4:
-    st.header("📕 MS1279-WESCO 인보이스 추출")
-    uploaded_file = st.file_uploader("WESCO 인보이스 PDF 업로드", type=["pdf"], key="wesco_pdf")
+    st.header("📕 MS1279-WESCO 인보이스 추출 (테이블 기반)")
+    uploaded_file = st.file_uploader("WESCO 인보이스 PDF 업로드", type=["pdf"], key="wesco_table_pdf")
     if uploaded_file:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
             tmp_file.write(uploaded_file.read())
             temp_pdf_path = tmp_file.name
 
-        extracted_records = []
+        all_data = []
         with pdfplumber.open(temp_pdf_path) as pdf:
-            lines = []
             for page in pdf.pages:
-                lines.extend(page.extract_text().split("\n"))
-
-        # 1. 필터링: 유의미한 행들만 추림
-        i = 0
-        while i < len(lines):
-            line = lines[i]
-            if any(x in line for x in ["WES", "C13", "C14", "Cord", "Patch"]):
-                try:
-                    item_line = lines[i].strip()
-                    desc_line = lines[i+1].strip() if i+1 < len(lines) else ""
-                    order_line = lines[i+2].strip() if i+2 < len(lines) else ""
-                    msf_line = ""
-                    export_line = ""
-                    for j in range(i+2, min(i+6, len(lines))):
-                        if "Customer item:" in lines[j]:
-                            msf_line = lines[j].strip()
-                        if "Export Code:" in lines[j]:
-                            export_line = lines[j].strip()
-                    item_parts = order_line.split()
-                    if len(item_parts) >= 6:
-                        extracted_records.append({
-                            "Item Number": item_line.split()[0],
-                            "Part Description": desc_line,
-                            "Microsoft Part No.": msf_line.split("MSF-")[-1].strip() if "MSF-" in msf_line else "",
-                            "Ordered Qty": item_parts[0],
-                            "Shipped Qty": item_parts[1],
-                            "Unit": item_parts[2],
-                            "Unit Price": item_parts[3],
-                            "Amount": item_parts[5] if len(item_parts) > 5 else "",
-                            "COO": export_line.split("Origin:")[-1].split()[0] if "Origin:" in export_line else "",
-                            "Export Code": export_line.split("Export Code:")[-1].split()[0] if "Export Code:" in export_line else "",
-                            "Weight": export_line.split("Weight:")[-1].split()[0] if "Weight:" in export_line else "",
-                            "Warehouse": export_line.split("Warehouse")[-1].split(":")[-1].strip() if "Warehouse" in export_line else ""
-                        })
-                    i += 6
-                except Exception:
-                    i += 1
-            else:
-                i += 1
+                tables = page.extract_tables()
+                for table in tables:
+                    for row in table:
+                        # 유효한 데이터 줄만 추출 (Header 제외 및 길이 확인)
+                        if row and len(row) >= 6 and "Item" not in row[0] and "WESCO" not in row[0]:
+                            all_data.append(row)
 
         os.remove(temp_pdf_path)
 
-        if extracted_records:
-            wesco_df = pd.DataFrame(extracted_records)
-            st.dataframe(wesco_df)
+        if all_data:
+            df = pd.DataFrame(all_data, columns=[
+                "Item Number", "Part Description", "Ordered Qty",
+                "Shipped Qty", "Unit", "Unit Price", "Per", "Amount"
+            ][:len(all_data[0])])  # 열 수 맞춤
+            st.dataframe(df)
 
             excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
-            wesco_df.to_excel(excel_file.name, index=False, sheet_name="WESCO_INVOICE")
+            df.to_excel(excel_file.name, index=False, sheet_name="WESCO_INVOICE")
 
             with open(excel_file.name, "rb") as f:
                 st.download_button(
-                    label="📥 WESCO 엑셀 다운로드",
+                    label="📥 WESCO 테이블 엑셀 다운로드",
                     data=f,
-                    file_name="wesco_invoice_data.xlsx"
+                    file_name="wesco_invoice_table_data.xlsx"
                 )
         else:
-            st.warning("PDF에서 항목을 추출할 수 없습니다. 형식을 다시 확인해주세요.")
+            st.warning("테이블 형식으로 추출 가능한 항목이 없습니다.")
