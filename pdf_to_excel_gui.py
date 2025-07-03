@@ -312,40 +312,62 @@ if master_df is None:
 
 
 with tab4:
-    st.header("📕 MS1279-WESCO 인보이스 추출 (테이블 기반)")
-    uploaded_file = st.file_uploader("WESCO 인보이스 PDF 업로드", type=["pdf"], key="wesco_table_pdf")
+    st.header("📕 MS1279-WESCO 인보이스 추출 (좌표 기반)")
+    uploaded_file = st.file_uploader("WESCO 인보이스 PDF 업로드", type=["pdf"], key="wesco_bbox_pdf")
     if uploaded_file:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
             tmp_file.write(uploaded_file.read())
             temp_pdf_path = tmp_file.name
 
-        all_data = []
+        import collections
+
+        def group_words_by_line(words, y_tolerance=3):
+            lines = collections.defaultdict(list)
+            for word in words:
+                y_center = (word["top"] + word["bottom"]) / 2
+                matched = False
+                for key in lines:
+                    if abs(key - y_center) <= y_tolerance:
+                        lines[key].append(word)
+                        matched = True
+                        break
+                if not matched:
+                    lines[y_center].append(word)
+            return lines
+
+        extracted_rows = []
+
         with pdfplumber.open(temp_pdf_path) as pdf:
             for page in pdf.pages:
-                tables = page.extract_tables()
-                for table in tables:
-                    for row in table:
-                        # 유효한 데이터 줄만 추출 (Header 제외 및 길이 확인)
-                        if row and len(row) >= 6 and "Item" not in row[0] and "WESCO" not in row[0]:
-                            all_data.append(row)
+                words = page.extract_words(use_text_flow=True, keep_blank_chars=True)
+                lines = group_words_by_line(words)
+
+                for _, line_words in sorted(lines.items()):
+                    line_words.sort(key=lambda w: w["x0"])
+                    text_line = [w["text"] for w in line_words]
+                    # 최소 유효 데이터 조건: 숫자 2개 이상 포함된 줄
+                    digit_count = sum(1 for t in text_line if any(c.isdigit() for c in t))
+                    if digit_count >= 2 and len(text_line) >= 5:
+                        extracted_rows.append(text_line)
 
         os.remove(temp_pdf_path)
 
-        if all_data:
-            df = pd.DataFrame(all_data, columns=[
-                "Item Number", "Part Description", "Ordered Qty",
-                "Shipped Qty", "Unit", "Unit Price", "Per", "Amount"
-            ][:len(all_data[0])])  # 열 수 맞춤
+        if extracted_rows:
+            # 최대 10개 열까지만 보여줌
+            max_len = max(len(row) for row in extracted_rows)
+            headers = [f"Col{i+1}" for i in range(max_len)]
+            norm_rows = [row + [""] * (max_len - len(row)) for row in extracted_rows]
+            df = pd.DataFrame(norm_rows, columns=headers)
             st.dataframe(df)
 
             excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
-            df.to_excel(excel_file.name, index=False, sheet_name="WESCO_INVOICE")
+            df.to_excel(excel_file.name, index=False, sheet_name="WESCO_BBOX")
 
             with open(excel_file.name, "rb") as f:
                 st.download_button(
-                    label="📥 WESCO 테이블 엑셀 다운로드",
+                    label="📥 좌표기반 엑셀 다운로드",
                     data=f,
-                    file_name="wesco_invoice_table_data.xlsx"
+                    file_name="wesco_invoice_bbox.xlsx"
                 )
         else:
-            st.warning("테이블 형식으로 추출 가능한 항목이 없습니다.")
+            st.warning("좌표기반으로도 유효한 데이터를 추출할 수 없습니다.")
