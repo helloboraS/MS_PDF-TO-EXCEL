@@ -1,133 +1,83 @@
+
 import streamlit as st
 import pandas as pd
-import pdfplumber
-import tempfile
 import os
-
-def extract_format_a(pdf_path):
-    records = []
-    with pdfplumber.open(pdf_path) as pdf:
-        for page in pdf.pages:
-            lines = page.extract_text().split("\n")
-            for line in lines:
-                parts = line.split()
-                if len(parts) >= 12 and parts[2].isdigit() and parts[-4].isdigit():
-                    record = {
-                        "PO No": parts[1],
-                        "SAP Order No": parts[2],
-                        "Part Number": parts[3],
-                        "Part Description": " ".join(parts[4:-6]),
-                        "Model No": parts[-6],
-                        "Country of Origin": parts[-5],
-                        "Ship Qty": parts[-4],
-                        "Price UOM": parts[-3],
-                        "Unit Price": parts[-2],
-                        "Extended Price": parts[-1],
-                        "HTS Code": "",
-                        "HTS Description": ""
-                    }
-                    records.append(record)
-                elif len(parts) >= 3 and parts[0].isdigit() and parts[1].isdigit():
-                    if records:
-                        records[-1]["HTS Code"] = parts[1]
-                        records[-1]["HTS Description"] = " ".join(parts[2:])
-    return pd.DataFrame(records)
-
-def extract_format_b(pdf_path):
-    records = []
-    with pdfplumber.open(pdf_path) as pdf:
-        for page in pdf.pages:
-            lines = page.extract_text().split("\n")
-            i = 0
-            while i < len(lines) - 1:
-                line1 = lines[i].strip().split()
-                line2 = lines[i + 1].strip().split()
-
-                if not (line1 and line2):
-                    i += 1
-                    continue
-                try:
-                    delivery_no = line1[1]
-                    msf_index = next(j for j, p in enumerate(line1) if p.startswith("MSF-"))
-                    manufacturer_part_no = " ".join(line1[2:msf_index])
-                    msf_index = next(j for j, p in enumerate(line1) if p.startswith("MSF-"))
-                    ms_part_no = line1[msf_index]
-
-                    model_no = line2[2] if len(line2) > 2 else "NA"
-
-                    hts_code = line1[msf_index + 2]
-                    country = line1[msf_index + 3]
-                    ship_qty = line1[msf_index + 4]
-                    unit_price = line1[msf_index + 5]
-                    price_uom = line1[msf_index + 6]
-                    ext_price = line1[msf_index + 7]
-
-                    desc_start_index = 3 if len(line2) > 3 else None
-                    desc_raw = " ".join(line2[desc_start_index:]) if desc_start_index else ""
-                    desc_clean = desc_raw.replace("NEW NLR", "").strip()
-
-                    record = {
-                        "Delivery No.": delivery_no,
-                        "Manufacturer Part No.": manufacturer_part_no,
-                        "Model No": model_no,
-                        "Microsoft Part No.": ms_part_no,
-                        "HTS Code": hts_code,
-                        "Country of Origin": country,
-                        "Ship Qty": ship_qty,
-                        "Unit Price": unit_price,
-                        "Price UOM": price_uom,
-                        "Extended Price": ext_price,
-                        "Part Description": desc_clean
-                    }
-                    records.append(record)
-                    i += 2
-                except Exception:
-                    i += 1
-    return pd.DataFrame(records)
+import re
 
 st.set_page_config(page_title="MS Helper", layout="wide")
 st.title("Microsoft Helper ♥")
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(['📘 MS1056', '📗 MS1279-PAYMENTS', '📒 MS1279-MASTER 비교', '📕 MS1279-WESCO', '📙 HS코드 비교'])
+# 탭 구성
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "📘 MS1056", 
+    "📗 MS1279-PAYMENTS", 
+    "📒 MS1279-MASTER 비교", 
+    "📕 MS1279-WESCO", 
+    "📙 HS 코드 비교기"
+])
 
-with tab1:
-    st.write("탭1: 기존 구현된 MS1056 기능")
-
-with tab2:
-    st.write("탭2: 기존 구현된 MS1279-PAYMENTS 기능")
-
-with tab3:
-    st.write("탭3: 기존 구현된 MASTER 비교 기능")
-
-with tab4:
-    st.write("탭4: 기존 구현된 WESCO 기능")
-
+# 탭5: HS 코드 비교기
 with tab5:
-    st.subheader("Microsoft Part No.와 INV HS 코드 비교")
+    st.header("📙 Microsoft Part No. & INV HS 비교기")
 
-    part_no_input = st.text_area("Microsoft Part No. 입력 (쉼표로 구분)", placeholder="예: MSF-000001, MSF-000002")
-    inv_hs_input = st.text_area("INV HS 입력 (쉼표로 구분)", placeholder="예: 8473301000, 8473309000")
+    input_data = st.text_area(
+        "Microsoft Part No. 와 INV HS 입력 (쉼표 또는 탭으로 구분)", 
+        height=200,
+        placeholder="예: MSF-12345678,3923500000\nMSF-98765432\t8473304090"
+    )
 
-    if st.button("비교 실행"):
-        if not os.path.exists("MASTER_MS5673.xlsx"):
-            st.error("MASTER_MS5673.xlsx 파일이 없습니다.")
-        else:
-            master_df = pd.read_excel("MASTER_MS5673.xlsx")
-            part_nos = [x.strip() for x in part_no_input.split(",")]
-            inv_hs_codes = [x.strip().replace("-", "") for x in inv_hs_input.split(",")]
+    # 마스터 파일 불러오기
+    if "master_df" not in st.session_state:
+        if os.path.exists("MASTER_MS5673.xlsx"):
+            st.session_state["master_df"] = pd.read_excel("MASTER_MS5673.xlsx")
 
-            result = []
-            for pno, inv_hs in zip(part_nos, inv_hs_codes):
-                row = master_df[master_df["Microsoft Part No."].astype(str).str.strip() == pno]
-                hs_code = row["HS Code"].values[0] if not row.empty else ""
-                hs_code = str(hs_code).zfill(10)
-                match_10 = "O" if inv_hs[:10] == hs_code[:10] else "X"
-                match_6 = "O" if inv_hs[:6] == hs_code[:6] else "X"
-                result.append({
-                    "Microsoft Part No.": pno,
-                    "INV HS": inv_hs,
-                    "MASTER HS Code": hs_code,
-                    "HS10_MATCH": match_10,
-                    "HS6_MATCH": match_6
-                })
-            st.dataframe(pd.DataFrame(result))
+    master_df = st.session_state.get("master_df")
+
+    def clean_code(code):
+        return str(code).strip().replace("-", "")
+
+    def fix_hscode(code):
+        try:
+            code_str = str(code)
+            if code_str.endswith(".0"):
+                code_str = code_str[:-2]
+            return code_str.zfill(10)
+        except:
+            return ""
+
+    if input_data and master_df is not None:
+        lines = input_data.strip().split("\n")
+        results = []
+
+        for line in lines:
+            parts = re.split(r"[,\t]", line.strip())
+            if len(parts) < 2:
+                continue
+            part_no_input = parts[0].strip()
+            inv_hs_input = parts[1].strip()
+            inv_hs_clean = clean_code(inv_hs_input)
+
+            match = master_df[master_df["Microsoft Part No."].astype(str).str.strip() == part_no_input]
+
+            if not match.empty:
+                hs_code_raw = match.iloc[0]["HS Code"]
+                hs_code_clean = clean_code(hs_code_raw)
+                hs_code_fixed = fix_hscode(hs_code_clean)
+                hs6_match = "O" if inv_hs_clean[:6] == hs_code_fixed[:6] else "X"
+                hs10_match = "O" if inv_hs_clean[:10] == hs_code_fixed[:10] else "X"
+            else:
+                hs_code_fixed = "(없음)"
+                hs6_match = hs10_match = "X"
+
+            results.append({
+                "Microsoft Part No.": part_no_input,
+                "입력한 INV HS": inv_hs_clean,
+                "MASTER HS Code": hs_code_fixed,
+                "6자리 비교": hs6_match,
+                "10자리 비교": hs10_match
+            })
+
+        result_df = pd.DataFrame(results)
+        st.dataframe(result_df)
+    elif input_data and master_df is None:
+        st.error("⚠️ MASTER_MS5673.xlsx 파일이 업로드되지 않았습니다. 먼저 업로드해주세요.")
