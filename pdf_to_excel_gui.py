@@ -4,6 +4,17 @@ import pdfplumber
 import tempfile
 import os
 
+st.set_page_config(page_title="MS Helper", layout="wide")
+st.title("Microsoft Helper ♥")
+
+tab1, tab2, tab3, tab4 = st.tabs(["📘 MS1056", "📗 MS1279-PAYMENTS", "📒 MS1279-MASTER 비교", "📕 MS1279-WESCO"])
+
+import streamlit as st
+import pandas as pd
+import pdfplumber
+import tempfile
+import os
+
 def extract_format_a(pdf_path):
     records = []
     with pdfplumber.open(pdf_path) as pdf:
