@@ -389,21 +389,27 @@ with tab4:
             final["Microsoft Part No."] = final["Microsoft Part No."].fillna("신규코드")
 
 
-            # 원산지 추출 (Item별로 추출)
+            # 원산지 정밀 추출 (각 품목 주변 텍스트 기반)
             full_text = "\n".join([w["text"] for w in words])
-            item_origin_map = {}
-            item_blocks = re.split(r"(?=WES[-A-Z0-9]+)", full_text)
-            for block in item_blocks:
-                item_match = re.search(r"(WES[-A-Z0-9]+)", block)
-                if item_match:
-                    item_code = item_match.group(1)
-                    coo_match = re.search(r"COO:\s*(\S+)", block)
-                    origin_match = re.search(r"Origin:\s*(\S+)", block)
+            origin_list = []
+
+            for item in final["Item Number"]:
+                pattern = re.escape(str(item).strip())
+                match = re.search(pattern + r".{0,200}", full_text)
+                if match:
+                    snippet = match.group()
+                    coo_match = re.search(r"COO:\s*(\S+)", snippet)
+                    origin_match = re.search(r"Origin:\s*(\S+)", snippet)
                     if coo_match:
-                        item_origin_map[item_code] = coo_match.group(1)
+                        origin_list.append(coo_match.group(1))
                     elif origin_match:
-                        item_origin_map[item_code] = origin_match.group(1)
-            final["Country of Origin"] = final["Item Number"].map(item_origin_map).fillna("미확인")
+                        origin_list.append(origin_match.group(1))
+                    else:
+                        origin_list.append("미확인")
+                else:
+                    origin_list.append("미확인")
+
+            final["Country of Origin"] = origin_list
 
             final["Part Description"] = final["Part Description"].fillna(final["Description"])
 
