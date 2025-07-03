@@ -10,8 +10,8 @@ def extract_format_a(pdf_path):
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
             for line in lines:
-        if not isinstance(line, str):
-            continue
+    if not isinstance(line, str):
+        continue
                 parts = line.split()
                 if len(parts) >= 12 and parts[2].isdigit() and parts[-4].isdigit():
                     record = {
@@ -416,8 +416,8 @@ with tab4:
     coos = []
 
     for line in lines:
-        if not isinstance(line, str):
-            continue
+    if not isinstance(line, str):
+        continue
         export_match = re.search(r"Export Code:\s*([\d\.]+)", line)
         coo_match = re.search(r"Origin:\s*([A-Za-z]+)", line)
 
@@ -439,5 +439,4 @@ with tab4:
     for i in range(max_len):
         extracted_data[i]["Export Code"] = export_codes[i]
         extracted_data[i]["COO"] = coos[i]
-
 
