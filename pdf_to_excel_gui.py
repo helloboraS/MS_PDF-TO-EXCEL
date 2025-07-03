@@ -312,8 +312,8 @@ if master_df is None:
 
 
 with tab4:
-    st.header("📕 MS1279-WESCO 인보이스 추출 (요건비대상 추가, 전파/전기 제외)")
-    uploaded_file = st.file_uploader("WESCO 인보이스 PDF 업로드", type=["pdf"], key="wesco_bbox_final_nocert")
+    st.header("📕 MS1279-WESCO 인보이스 추출 (Item No + Description 매칭)")
+    uploaded_file = st.file_uploader("WESCO 인보이스 PDF 업로드", type=["pdf"], key="wesco_bbox_descmerge")
     if uploaded_file and "master_df" in st.session_state:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
             tmp_file.write(uploaded_file.read())
@@ -363,7 +363,7 @@ with tab4:
             norm_rows = [row + [""] * (8 - len(row)) for row in extracted_rows if len(row) <= 8]
             wesco_df = pd.DataFrame(norm_rows, columns=headers)
 
-            # 특수문자 정제
+            # 정제
             wesco_df["clean_item"] = wesco_df["Item Number"].apply(clean_code)
             wesco_df["clean_desc"] = wesco_df["Description"].apply(clean_code)
 
@@ -371,29 +371,38 @@ with tab4:
             master_df["clean_code"] = master_df["Microsoft Part No."].apply(clean_code)
             master_df["clean_desc"] = master_df["Part Description"].apply(clean_code)
 
-            # 병합
+            # 병합 (1차: item 기준)
             columns_to_pull = [
-                "Microsoft Part No.", "clean_code", "Part Description", "HS Code", "요건비대상"
+                "Microsoft Part No.", "Part Description", "HS Code", "요건비대상", "clean_code", "clean_desc"
             ]
-            merged = wesco_df.merge(master_df[columns_to_pull], left_on="clean_item", right_on="clean_code", how="left")
+            merged_by_item = wesco_df.merge(master_df[columns_to_pull], left_on="clean_item", right_on="clean_code", how="left", suffixes=("", "_item"))
 
-            merged["Microsoft Part No."] = merged["Microsoft Part No."].fillna("신규코드")
-            merged["Part Description"] = merged["Part Description"].fillna(merged["Description"])
+            # 병합 (2차: desc 기준)
+            merged_by_desc = wesco_df.merge(master_df[columns_to_pull], left_on="clean_desc", right_on="clean_desc", how="left", suffixes=("", "_desc"))
 
-            st.dataframe(merged[[
+            # 보완: item 병합 우선, 없으면 desc 병합 결과 채움
+            final = merged_by_item.copy()
+            for col in ["Microsoft Part No.", "Part Description", "HS Code", "요건비대상"]:
+                final[col] = final[col].fillna(merged_by_desc[col])
+
+            # 누락된 항목 처리
+            final["Microsoft Part No."] = final["Microsoft Part No."].fillna("신규코드")
+            final["Part Description"] = final["Part Description"].fillna(final["Description"])
+
+            st.dataframe(final[[
                 "Item Number", "Microsoft Part No.", "Part Description",
                 "Ordered Qty", "Shipped Qty", "UM", "Unit Price", "Amount",
                 "HS Code", "요건비대상"
             ]])
 
             excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
-            merged.to_excel(excel_file.name, index=False, sheet_name="WESCO_MERGED")
+            final.to_excel(excel_file.name, index=False, sheet_name="WESCO_MERGED")
 
             with open(excel_file.name, "rb") as f:
                 st.download_button(
-                    label="📥 요건비대상 포함 엑셀 다운로드",
+                    label="📥 Item/Description 기준 매칭 엑셀 다운로드",
                     data=f,
-                    file_name="wesco_invoice_yogunfree.xlsx"
+                    file_name="wesco_invoice_fallback_match.xlsx"
                 )
         else:
             st.warning("유효한 데이터를 추출할 수 없습니다.")
