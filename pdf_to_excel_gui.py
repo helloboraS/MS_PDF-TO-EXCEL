@@ -105,7 +105,7 @@ with tab1:
             st.subheader(f"{sheet_name}")
             st.dataframe(df)
         if all_data:
-            excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
+                excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
             with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
                 for name, df in all_data.items():
                     df.to_excel(writer, sheet_name=name, index=False)
@@ -131,7 +131,7 @@ with tab2:
             st.subheader(f"{sheet_name}")
             st.dataframe(df)
         if all_data:
-            excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
+                excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
             with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
                 for name, df in all_data.items():
                     df.to_excel(writer, sheet_name=name, index=False)
@@ -412,7 +412,7 @@ with tab4:
                 "HS Code", "요건비대상"
             ]])
 
-            excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
+                excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
             final.to_excel(excel_file.name, index=False, sheet_name="WESCO_MERGED")
 
             with open(excel_file.name, "rb") as f:
