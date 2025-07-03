@@ -312,8 +312,8 @@ if master_df is None:
 
 
 with tab4:
-    st.header("📕 MS1279-WESCO 인보이스 추출 (MASTER 매핑 포함, 안정화)")
-    uploaded_file = st.file_uploader("WESCO 인보이스 PDF 업로드", type=["pdf"], key="wesco_bbox_merge_fix")
+    st.header("📕 MS1279-WESCO 인보이스 추출 (MASTER 매핑 최종 수정)")
+    uploaded_file = st.file_uploader("WESCO 인보이스 PDF 업로드", type=["pdf"], key="wesco_bbox_merge_final")
     if uploaded_file and "master_df" in st.session_state:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
             tmp_file.write(uploaded_file.read())
@@ -359,7 +359,7 @@ with tab4:
             norm_rows = [row + [""] * (8 - len(row)) for row in extracted_rows if len(row) <= 8]
             wesco_df = pd.DataFrame(norm_rows, columns=headers)
 
-            # 정제된 Item 코드 생성
+            # 정제된 코드로 비교용 컬럼
             wesco_df["clean_item"] = wesco_df["Item Number"].str.replace(r"[-\s]", "", regex=True).str.upper()
 
             master_df = st.session_state["master_df"].copy()
@@ -367,12 +367,12 @@ with tab4:
 
             merged = wesco_df.merge(master_df, left_on="clean_item", right_on="clean_code", how="left")
 
-            # 안전하게 열 처리
-            if "Microsoft Part No." in merged.columns:
-                merged["Microsoft Part No."] = merged["Microsoft Part No."]
-            else:
-                merged["Microsoft Part No."] = merged["Item Number"]
+            # 결과에 정식 코드 삽입 (하이픈 포함된 원래 값 사용)
+            merged["Microsoft Part No."] = merged["Microsoft Part No."].fillna("")
+            merged.loc[merged["Microsoft Part No."] == "", "Microsoft Part No."] = "신규코드"
+            merged.loc[merged["Microsoft Part No."] == "신규코드", "Microsoft Part No."] = merged["Item Number"]
 
+            # Part Description 처리
             merged["Part Description (MASTER)"] = merged.get("Part Description_y", merged["Description"])
             merged["Part Description"] = merged["Part Description (MASTER)"].fillna(merged["Description"])
 
@@ -387,9 +387,9 @@ with tab4:
 
             with open(excel_file.name, "rb") as f:
                 st.download_button(
-                    label="📥 MASTER 매핑 포함 엑셀 다운로드",
+                    label="📥 MASTER 매핑 최종 엑셀 다운로드",
                     data=f,
-                    file_name="wesco_invoice_with_master.xlsx"
+                    file_name="wesco_invoice_final.xlsx"
                 )
         else:
             st.warning("유효한 데이터를 추출할 수 없습니다.")
