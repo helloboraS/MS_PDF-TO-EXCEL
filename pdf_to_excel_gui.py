@@ -110,13 +110,12 @@ with tab1:
                 for name, df in all_data.items():
                     df.to_excel(writer, sheet_name=name, index=False)
         with open(excel_file.name, "rb") as f:
-        st.download_button(
-        label="📥 MS1056 엑셀 다운로드",
-        data=f,
-        file_name="ms1056_data.xlsx"
-                )
-
-with tab2:
+            st.download_button(
+            label="📥 MS1056 엑셀 다운로드",
+            data=f,
+            file_name="ms1056_data.xlsx"
+            )
+            with tab2:
     if "master_df" not in st.session_state:
         if os.path.exists("MASTER_MS5673.xlsx"):
             st.session_state["master_df"] = pd.read_excel("MASTER_MS5673.xlsx")
@@ -166,13 +165,12 @@ with tab2:
         })
         filtered_df.to_excel(writer, sheet_name="신고서용", index=False)
         with open(excel_file.name, "rb") as f:
-        st.download_button(
-        label="📥 MS1279-PAYMENTS 엑셀 다운로드",
-        data=f,
-        file_name="ms1279_payments_data.xlsx"
-                )
-
-    with tab3:
+            st.download_button(
+            label="📥 MS1279-PAYMENTS 엑셀 다운로드",
+            data=f,
+            file_name="ms1279_payments_data.xlsx"
+            )
+                with tab3:
     # st.header("📒 마스터 데이터 비교")
 
     if "master_df" not in st.session_state:
