@@ -160,58 +160,7 @@ with tab2:
 
 with tab3:
 
-    st.markdown("---")
-    st.subheader("🔍 단일 Microsoft Part No. 수기 비교")
-
-    if master_df is not None:
-        if "compare_results" not in st.session_state:
-            st.session_state.compare_results = []
-
-        with st.form("manual_compare_form"):
-            part_no_input = st.text_input("Microsoft Part No. 입력")
-            inv_hs_input = st.text_input("INV HS Code 입력")
-            submitted = st.form_submit_button("비교하기")
-
-        def clean_hs(code):
-            try:
-                code = str(code).strip().replace("-", "")
-                if code.endswith(".0"):
-                    code = code[:-2]
-                return code.zfill(10)
-            except:
-                return ""
-
-        if submitted and part_no_input:
-            part_no = part_no_input.strip()
-            inv_hs = clean_hs(inv_hs_input)
-
-            row = master_df[master_df["Microsoft Part No."] == part_no]
-
-            if not row.empty:
-                hs_code = clean_hs(row.iloc[0]["HS Code"])
-                desc = row.iloc[0].get("Part Description", "")
-                result = {
-                    "Microsoft Part No.": part_no,
-                    "INV HS": inv_hs,
-                    "MASTER HS": hs_code,
-                    "HS6_MATCH": "O" if inv_hs[:6] == hs_code[:6] else "X",
-                    "HS10_MATCH": "O" if inv_hs[:10] == hs_code[:10] else "X",
-                    "Part Description": desc
-                }
-            else:
-                result = {
-                    "Microsoft Part No.": part_no,
-                    "INV HS": inv_hs,
-                    "MASTER HS": "N/A",
-                    "HS6_MATCH": "X",
-                    "HS10_MATCH": "X",
-                    "Part Description": "⚠️ 마스터에 없음"
-                }
-
-            st.session_state.compare_results.append(result)
-
-        if st.session_state.get("compare_results"):
-            st.dataframe(pd.DataFrame(st.session_state.compare_results))
+    
     # st.header("📒 마스터 데이터 비교")
 
     if "master_df" not in st.session_state:
@@ -296,6 +245,59 @@ with tab3:
                 data=f,
                 file_name="MS5673_신고.xlsx"
             )
-    elif master_df is None:
+    
+    elif master_df is not None:
+        st.markdown("---")
+        st.subheader("🔍 단일 Microsoft Part No. 수기 비교")
+
+        if "compare_results" not in st.session_state:
+            st.session_state.compare_results = []
+
+        with st.form("manual_compare_form"):
+            part_no_input = st.text_input("Microsoft Part No. 입력")
+            inv_hs_input = st.text_input("INV HS Code 입력")
+            submitted = st.form_submit_button("비교하기")
+
+        def clean_hs(code):
+            try:
+                code = str(code).strip().replace("-", "")
+                if code.endswith(".0"):
+                    code = code[:-2]
+                return code.zfill(10)
+            except:
+                return ""
+
+        if submitted and part_no_input:
+            part_no = part_no_input.strip()
+            inv_hs = clean_hs(inv_hs_input)
+
+            row = master_df[master_df["Microsoft Part No."] == part_no]
+
+            if not row.empty:
+                hs_code = clean_hs(row.iloc[0]["HS Code"])
+                desc = row.iloc[0].get("Part Description", "")
+                result = {
+                    "Microsoft Part No.": part_no,
+                    "INV HS": inv_hs,
+                    "MASTER HS": hs_code,
+                    "HS6_MATCH": "O" if inv_hs[:6] == hs_code[:6] else "X",
+                    "HS10_MATCH": "O" if inv_hs[:10] == hs_code[:10] else "X",
+                    "Part Description": desc
+                }
+            else:
+                result = {
+                    "Microsoft Part No.": part_no,
+                    "INV HS": inv_hs,
+                    "MASTER HS": "N/A",
+                    "HS6_MATCH": "X",
+                    "HS10_MATCH": "X",
+                    "Part Description": "⚠️ 마스터에 없음"
+                }
+
+            st.session_state.compare_results.append(result)
+
+        if st.session_state.get("compare_results"):
+            st.dataframe(pd.DataFrame(st.session_state.compare_results))
+elif master_df is None:
         st.warning("⚠️ 마스터 파일이 없습니다. 최초 1회 업로드가 필요합니다.")
 
