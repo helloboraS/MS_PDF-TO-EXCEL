@@ -321,64 +321,50 @@ with tab4:
 
         extracted_records = []
         with pdfplumber.open(temp_pdf_path) as pdf:
+            lines = []
             for page in pdf.pages:
-                lines = page.extract_text().split("\n")
-                for i in range(len(lines)):
-                    line = lines[i]
-                    if "Customer item:" in line and "MSF-" in line:
-                        try:
-                            part_no = line.split("MSF-")[-1].strip()
-                            ms_part_no = "MSF-" + part_no.split()[0]
+                lines.extend(page.extract_text().split("\n"))
 
-                            # 위 줄에서 Item 정보 추출
-                            item_line = lines[i-2] if i >= 2 else ""
-                            desc_line = lines[i-1] if i >= 1 else ""
+        # 1. 필터링: 유의미한 행들만 추림
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            if any(x in line for x in ["WES", "C13", "C14", "Cord", "Patch"]):
+                try:
+                    item_line = lines[i].strip()
+                    desc_line = lines[i+1].strip() if i+1 < len(lines) else ""
+                    order_line = lines[i+2].strip() if i+2 < len(lines) else ""
+                    msf_line = ""
+                    export_line = ""
+                    for j in range(i+2, min(i+6, len(lines))):
+                        if "Customer item:" in lines[j]:
+                            msf_line = lines[j].strip()
+                        if "Export Code:" in lines[j]:
+                            export_line = lines[j].strip()
+                    item_parts = order_line.split()
+                    if len(item_parts) >= 6:
+                        extracted_records.append({
+                            "Item Number": item_line.split()[0],
+                            "Part Description": desc_line,
+                            "Microsoft Part No.": msf_line.split("MSF-")[-1].strip() if "MSF-" in msf_line else "",
+                            "Ordered Qty": item_parts[0],
+                            "Shipped Qty": item_parts[1],
+                            "Unit": item_parts[2],
+                            "Unit Price": item_parts[3],
+                            "Amount": item_parts[5] if len(item_parts) > 5 else "",
+                            "COO": export_line.split("Origin:")[-1].split()[0] if "Origin:" in export_line else "",
+                            "Export Code": export_line.split("Export Code:")[-1].split()[0] if "Export Code:" in export_line else "",
+                            "Weight": export_line.split("Weight:")[-1].split()[0] if "Weight:" in export_line else "",
+                            "Warehouse": export_line.split("Warehouse")[-1].split(":")[-1].strip() if "Warehouse" in export_line else ""
+                        })
+                    i += 6
+                except Exception:
+                    i += 1
+            else:
+                i += 1
 
-                            item_parts = item_line.strip().split()
-                            if len(item_parts) >= 6:
-                                item_number = item_parts[0]
-                                ordered_qty = item_parts[2]
-                                shipped_qty = item_parts[3]
-                                unit = item_parts[4]
-                                unit_price = item_parts[5]
-                                amount = item_parts[7] if len(item_parts) > 7 else ""
-
-                                description = desc_line.strip()
-
-                                # Export Code 줄
-                                j = i + 1
-                                export_code = ""
-                                origin = ""
-                                weight = ""
-                                warehouse = ""
-                                for offset in range(1, 4):
-                                    if i + offset < len(lines):
-                                        next_line = lines[i + offset]
-                                        if "Export Code:" in next_line:
-                                            tokens = next_line.replace("Export Code:", "").strip().split()
-                                            export_code = tokens[0] if len(tokens) > 0 else ""
-                                            origin = tokens[2] if len(tokens) > 2 else ""
-                                        if "Weight:" in next_line:
-                                            weight = next_line.split("Weight:")[-1].split()[0]
-                                        if "Warehouse" in next_line:
-                                            warehouse = next_line.split(":")[-1].strip()
-                                extracted_records.append({
-                                    "Item Number": item_number,
-                                    "Part Description": description,
-                                    "Microsoft Part No.": ms_part_no,
-                                    "Ordered Qty": ordered_qty,
-                                    "Shipped Qty": shipped_qty,
-                                    "Unit": unit,
-                                    "Unit Price": unit_price,
-                                    "Amount": amount,
-                                    "COO": origin,
-                                    "Export Code": export_code,
-                                    "Weight": weight,
-                                    "Warehouse": warehouse
-                                })
-                        except Exception:
-                            continue
         os.remove(temp_pdf_path)
+
         if extracted_records:
             wesco_df = pd.DataFrame(extracted_records)
             st.dataframe(wesco_df)
