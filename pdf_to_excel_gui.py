@@ -389,20 +389,21 @@ with tab4:
             final["Microsoft Part No."] = final["Microsoft Part No."].fillna("신규코드")
 
 
-            # 원산지 추출
-            coo_lines = [w["text"] for w in words if "COO:" in w["text"] or "Origin:" in w["text"]]
-            origin_map = {}
-            current_origin = ""
-            for line in coo_lines:
-                if "COO:" in line:
-                    match = re.search(r"COO:\s*(\S+)", line)
-                    if match:
-                        current_origin = match.group(1)
-                elif "Origin:" in line and not current_origin:
-                    match = re.search(r"Origin:\s*(\S+)", line)
-                    if match:
-                        current_origin = match.group(1)
-            final["Country of Origin"] = current_origin
+            # 원산지 추출 (Item별로 추출)
+            full_text = "\n".join([w["text"] for w in words])
+            item_origin_map = {}
+            item_blocks = re.split(r"(?=WES[-A-Z0-9]+)", full_text)
+            for block in item_blocks:
+                item_match = re.search(r"(WES[-A-Z0-9]+)", block)
+                if item_match:
+                    item_code = item_match.group(1)
+                    coo_match = re.search(r"COO:\s*(\S+)", block)
+                    origin_match = re.search(r"Origin:\s*(\S+)", block)
+                    if coo_match:
+                        item_origin_map[item_code] = coo_match.group(1)
+                    elif origin_match:
+                        item_origin_map[item_code] = origin_match.group(1)
+            final["Country of Origin"] = final["Item Number"].map(item_origin_map).fillna("미확인")
 
             final["Part Description"] = final["Part Description"].fillna(final["Description"])
 
