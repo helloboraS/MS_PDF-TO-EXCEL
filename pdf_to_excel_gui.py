@@ -269,7 +269,7 @@ with tab3:
 
         if submitted and part_no_input:
             part_no = part_no_input.strip()
-            inv_hs = clean_hs(inv_hs_input)
+            inv_hs = inv_hs_input.strip().replace("-", "")
 
             row = master_df[master_df["Microsoft Part No."] == part_no]
 
