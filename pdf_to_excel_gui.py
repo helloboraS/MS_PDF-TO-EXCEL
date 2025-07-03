@@ -312,8 +312,8 @@ if master_df is None:
 
 
 with tab4:
-    st.header("📕 MS1279-WESCO 인보이스 추출 (MASTER 매핑 최종 수정)")
-    uploaded_file = st.file_uploader("WESCO 인보이스 PDF 업로드", type=["pdf"], key="wesco_bbox_merge_final")
+    st.header("📕 MS1279-WESCO 인보이스 추출 (MASTER 기준 Microsoft Part No. 매핑)")
+    uploaded_file = st.file_uploader("WESCO 인보이스 PDF 업로드", type=["pdf"], key="wesco_bbox_merge_mfinal")
     if uploaded_file and "master_df" in st.session_state:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
             tmp_file.write(uploaded_file.read())
@@ -359,22 +359,22 @@ with tab4:
             norm_rows = [row + [""] * (8 - len(row)) for row in extracted_rows if len(row) <= 8]
             wesco_df = pd.DataFrame(norm_rows, columns=headers)
 
-            # 정제된 코드로 비교용 컬럼
+            # 정제된 Item 코드
             wesco_df["clean_item"] = wesco_df["Item Number"].str.replace(r"[-\s]", "", regex=True).str.upper()
 
             master_df = st.session_state["master_df"].copy()
             master_df["clean_code"] = master_df["Microsoft Part No."].astype(str).str.replace(r"[-\s]", "", regex=True).str.upper()
 
-            merged = wesco_df.merge(master_df, left_on="clean_item", right_on="clean_code", how="left")
+            # 필요한 컬럼만 유지해서 병합
+            columns_to_pull = [
+                "Microsoft Part No.", "clean_code", "Part Description", "HS Code",
+                "전파인증번호", "전기인증번호", "모델명", "기관", "정격전압"
+            ]
+            merged = wesco_df.merge(master_df[columns_to_pull], left_on="clean_item", right_on="clean_code", how="left")
 
-            # 결과에 정식 코드 삽입 (하이픈 포함된 원래 값 사용)
-            merged["Microsoft Part No."] = merged["Microsoft Part No."].fillna("")
-            merged.loc[merged["Microsoft Part No."] == "", "Microsoft Part No."] = "신규코드"
-            merged.loc[merged["Microsoft Part No."] == "신규코드", "Microsoft Part No."] = merged["Item Number"]
-
-            # Part Description 처리
-            merged["Part Description (MASTER)"] = merged.get("Part Description_y", merged["Description"])
-            merged["Part Description"] = merged["Part Description (MASTER)"].fillna(merged["Description"])
+            # Microsoft Part No.는 MASTER 기준 값으로 표시
+            merged["Microsoft Part No."] = merged["Microsoft Part No."].fillna("신규코드")
+            merged["Part Description"] = merged["Part Description"].fillna(merged["Description"])
 
             st.dataframe(merged[[
                 "Item Number", "Microsoft Part No.", "Part Description",
@@ -387,9 +387,9 @@ with tab4:
 
             with open(excel_file.name, "rb") as f:
                 st.download_button(
-                    label="📥 MASTER 매핑 최종 엑셀 다운로드",
+                    label="📥 MASTER 기준 매핑 엑셀 다운로드",
                     data=f,
-                    file_name="wesco_invoice_final.xlsx"
+                    file_name="wesco_invoice_master_match.xlsx"
                 )
         else:
             st.warning("유효한 데이터를 추출할 수 없습니다.")
