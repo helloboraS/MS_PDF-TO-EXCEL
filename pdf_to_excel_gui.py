@@ -312,8 +312,8 @@ if master_df is None:
 
 
 with tab4:
-    st.header("📕 MS1279-WESCO 인보이스 추출 (MASTER 매핑 포함)")
-    uploaded_file = st.file_uploader("WESCO 인보이스 PDF 업로드", type=["pdf"], key="wesco_bbox_merge")
+    st.header("📕 MS1279-WESCO 인보이스 추출 (MASTER 매핑 포함, 안정화)")
+    uploaded_file = st.file_uploader("WESCO 인보이스 PDF 업로드", type=["pdf"], key="wesco_bbox_merge_fix")
     if uploaded_file and "master_df" in st.session_state:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
             tmp_file.write(uploaded_file.read())
@@ -367,10 +367,14 @@ with tab4:
 
             merged = wesco_df.merge(master_df, left_on="clean_item", right_on="clean_code", how="left")
 
-            # 정식 Microsoft Part No.로 대체
-            merged["Microsoft Part No."] = merged["Microsoft Part No._y"].fillna("신규코드")
-            merged["Part Description (MASTER)"] = merged["Part Description"]
-            merged["Part Description"] = merged["Part Description_y"].fillna(merged["Description"])
+            # 안전하게 열 처리
+            if "Microsoft Part No." in merged.columns:
+                merged["Microsoft Part No."] = merged["Microsoft Part No."]
+            else:
+                merged["Microsoft Part No."] = merged["Item Number"]
+
+            merged["Part Description (MASTER)"] = merged.get("Part Description_y", merged["Description"])
+            merged["Part Description"] = merged["Part Description (MASTER)"].fillna(merged["Description"])
 
             st.dataframe(merged[[
                 "Item Number", "Microsoft Part No.", "Part Description",
