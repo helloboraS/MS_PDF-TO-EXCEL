@@ -282,7 +282,14 @@ with tab3:
                     "MASTER HS": hs_code,
                     "HS6_MATCH": "O" if inv_hs[:6] == hs_code[:6] else "X",
                     "HS10_MATCH": "O" if inv_hs[:10] == hs_code[:10] else "X",
-                    "Part Description": desc
+                    "Part Description": desc,
+                    "모델명": row.iloc[0].get("모델명", ""),
+                    "전파인증번호": row.iloc[0].get("전파인증번호", ""),
+                    "전기인증번호": row.iloc[0].get("전기인증번호", ""),
+                    "기관": row.iloc[0].get("기관", ""),
+                    "정격전압": row.iloc[0].get("정격전압", ""),
+                    "요건비대상": row.iloc[0].get("요건비대상", ""),
+                    "REMARK": row.iloc[0].get("REMARK", "")
                 }
             else:
                 result = {
