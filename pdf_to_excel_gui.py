@@ -298,6 +298,6 @@ with tab3:
 
         if st.session_state.get("compare_results"):
             st.dataframe(pd.DataFrame(st.session_state.compare_results))
-elif master_df is None:
+if master_df is None:
         st.warning("⚠️ 마스터 파일이 없습니다. 최초 1회 업로드가 필요합니다.")
 
