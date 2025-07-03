@@ -365,9 +365,11 @@ with tab4:
 
             # 특수문자 정제
             wesco_df["clean_item"] = wesco_df["Item Number"].apply(clean_code)
+            wesco_df["clean_desc"] = wesco_df["Description"].apply(clean_code)
 
             master_df = st.session_state["master_df"].copy()
             master_df["clean_code"] = master_df["Microsoft Part No."].apply(clean_code)
+            master_df["clean_desc"] = master_df["Part Description"].apply(clean_code)
 
             # 병합
             columns_to_pull = [
