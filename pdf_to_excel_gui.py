@@ -312,7 +312,7 @@ if master_df is None:
 
 
 with tab4:
-    st.header("📕 MS1279-WESCO 인보이스 추출 (특수문자 정제 포함 최종)")
+    #st.header("📕 MS1279-WESCO 인보이스 추출 (특수문자 정제 포함 최종)")
     uploaded_file = st.file_uploader("WESCO 인보이스 PDF 업로드", type=["pdf"], key="wesco_bbox_unicodefix")
     if uploaded_file and "master_df" in st.session_state:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
@@ -390,7 +390,7 @@ with tab4:
 
             with open(excel_file.name, "rb") as f:
                 st.download_button(
-                    label="📥 특수문자 정제 포함 엑셀 다운로드",
+                    label="엑셀 다운로드",
                     data=f,
                     file_name="wesco_invoice_final_unicodefix.xlsx"
                 )
