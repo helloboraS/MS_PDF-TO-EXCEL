@@ -117,6 +117,12 @@ with tab1:
                 )
 
 with tab2:
+    if "master_df" not in st.session_state:
+        if os.path.exists("MASTER_MS5673.xlsx"):
+            st.session_state["master_df"] = pd.read_excel("MASTER_MS5673.xlsx")
+
+    master_df = st.session_state.get("master_df")
+
     uploaded_files_b = st.file_uploader("MS1279 PDF Upload", type=["pdf"], accept_multiple_files=True, key="b")
     if uploaded_files_b:
         all_data = {}
@@ -136,7 +142,15 @@ with tab2:
                 for name, df in all_data.items():
                     df.to_excel(writer, sheet_name=name, index=False)
                 merged_df = pd.concat(all_data.values(), ignore_index=True)
-                filtered_df = pd.DataFrame({
+                
+                if master_df is not None:
+                    merged_df["Microsoft Part No."] = merged_df["Microsoft Part No."].astype(str).str.strip()
+                    master_df["Microsoft Part No."] = master_df["Microsoft Part No."].astype(str).str.strip()
+                    merged = merged_df.merge(master_df, how="left", on="Microsoft Part No.")
+                else:
+                    merged = merged_df.copy()
+
+filtered_df = pd.DataFrame({
                     "HS CODE": merged_df["HTS Code"],
                     "DESC + ORIGIN": merged_df.apply(
                         lambda row: row["Part Description"]
