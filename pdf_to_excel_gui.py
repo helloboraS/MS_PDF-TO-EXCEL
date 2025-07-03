@@ -173,12 +173,10 @@ with tab3:
 
     master_df = st.session_state.get("master_df")
 
-    def clean_code(text):
-    if not isinstance(text, str):
-        return ""
-    text = re.sub(r"[‐‑‒–—−]", "-", text)  # 특수 하이픈 통일
-    text = re.sub(r"[^A-Za-z0-9]", "", text)  # 특수문자 제거
-    return text.upper():
+    def clean_code(code):
+        return str(code).strip().replace("-", "")
+        
+    def fix_hscode(code):
         try:
             code_str = str(code)
             if code_str.endswith(".0"):
@@ -339,11 +337,11 @@ with tab4:
             return lines
 
         def clean_code(text):
-    if not isinstance(text, str):
-        return ""
-    text = re.sub(r"[‐‑‒–—−]", "-", text)  # 특수 하이픈 통일
-    text = re.sub(r"[^A-Za-z0-9]", "", text)  # 특수문자 제거
-    return text.upper() as pdf:
+            return re.sub(r"[^A-Za-z0-9]", "", str(text)).upper()
+
+        extracted_rows = []
+
+        with pdfplumber.open(temp_pdf_path) as pdf:
             for page in pdf.pages:
                 words = page.extract_words(use_text_flow=True, keep_blank_chars=True)
                 lines = group_words_by_line(words)
