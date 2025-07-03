@@ -361,42 +361,7 @@ with tab4:
                 "Shipped Qty", "UM", "Unit Price", "Per", "Amount"
             ]
             norm_rows = [row + [""] * (8 - len(row)) for row in extracted_rows if len(row) <= 8]
-            
-            # 라인 기준으로 품목 묶기 (줄바꿈 병합)
-            def group_rows_by_item(rows):
-                grouped = []
-                current = []
-                for row in rows:
-                    if re.match(r"^[A-Z0-9\-]{4,}$", row[0]):  # Item Number 기준
-                        if current:
-                            grouped.append(current)
-                        current = [row]
-                    else:
-                        current.append(row)
-                if current:
-                    grouped.append(current)
-                return grouped
-
-            grouped_rows = group_rows_by_item(extracted_rows)
-
-            # 병합 후 데이터프레임 만들기
-            combined_rows = []
-            for group in grouped_rows:
-                base = group[0] + [""] * (8 - len(group[0]))  # 기본 행
-                for extra in group[1:]:
-                    for i in range(1, min(len(extra), 8)):
-                        if extra[i] and not base[i]:
-                            base[i] = extra[i]
-                        elif extra[i]:
-                            base[i] += " " + extra[i]
-                combined_rows.append(base)
-
-            headers = [
-                "Item Number", "Description", "Ordered Qty",
-                "Shipped Qty", "UM", "Unit Price", "Per", "Amount"
-            ]
-            wesco_df = pd.DataFrame(combined_rows, columns=headers)
-
+            wesco_df = pd.DataFrame(norm_rows, columns=headers)
 
             # 정제
             wesco_df["clean_item"] = wesco_df["Item Number"].apply(clean_code)
@@ -422,30 +387,6 @@ with tab4:
 
             # 누락된 항목 처리
             final["Microsoft Part No."] = final["Microsoft Part No."].fillna("신규코드")
-
-
-            # 원산지 정확 추출 (라인 기반, Item별 연결)
-            lines = [w["text"] for w in words]
-            item_origin_map = {}
-            current_item = None
-
-            for i, line in enumerate(lines):
-                if re.match(r"^[A-Z0-9\-]{4,}$", line):  # 대략적인 Item Number
-                    current_item = line.strip()
-                elif "COO" in line or "Origin" in line:
-                    coo_match = re.search(r"COO\s*[:]?\s*([A-Z]+)", line)
-                    origin_match = re.search(r"Origin\s*[:]?\s*([A-Z]+)", line)
-                    if current_item:
-                        if coo_match:
-                            item_origin_map[current_item] = coo_match.group(1)
-                        elif origin_match:
-                            item_origin_map[current_item] = origin_match.group(1)
-
-            final["Country of Origin"] = final["Item Number"].map(item_origin_map).fillna("미확인")
-
-            # 중복 제거: Item Number + Amount 기준 중복 제거
-            final.drop_duplicates(subset=["Item Number", "Amount"], inplace=True)
-
             final["Part Description"] = final["Part Description"].fillna(final["Description"])
 
             st.dataframe(final[[
@@ -455,15 +396,25 @@ with tab4:
             ]])
 # 최종 저장 열 명시적으로 지정 → clean_ 열 완전 제외
             columns_to_export = [
- 
                 "Item Number", "Microsoft Part No.", "Part Description",
                 "Ordered Qty", "Shipped Qty", "UM", "Unit Price", "Amount",
-                "HS Code", "요건비대상", "Country of Origin"
+                "HS Code", "요건비대상"
             ]
             final_to_export = final[columns_to_export]
 
             excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
             final_to_export.to_excel(excel_file.name, index=False, sheet_name="WESCO_MERGED")
+
+            with open(excel_file.name, "rb") as f:
+                st.download_button(
+                    label="엑셀 다운로드",
+                    data=f,
+                    file_name="wesco_invoice.xlsx"
+                )
+
+
+            excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
+            final.to_excel(excel_file.name, index=False, sheet_name="WESCO_MERGED")
 
             with open(excel_file.name, "rb") as f:
                 st.download_button(
