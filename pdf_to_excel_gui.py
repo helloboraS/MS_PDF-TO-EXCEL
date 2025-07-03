@@ -371,7 +371,7 @@ with tab4:
 
             # 병합
             columns_to_pull = [
-                "Microsoft Part No.", "clean_code", "Part Description", "HS Code", "요건비대상사유"
+                "Microsoft Part No.", "clean_code", "Part Description", "HS Code", "요건비대상"
             ]
             merged = wesco_df.merge(master_df[columns_to_pull], left_on="clean_item", right_on="clean_code", how="left")
 
@@ -381,7 +381,7 @@ with tab4:
             st.dataframe(merged[[
                 "Item Number", "Microsoft Part No.", "Part Description",
                 "Ordered Qty", "Shipped Qty", "UM", "Unit Price", "Amount",
-                "HS Code", "요건비대상사유"
+                "HS Code", "요건비대상"
             ]])
 
             excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
