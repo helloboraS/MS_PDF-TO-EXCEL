@@ -248,7 +248,7 @@ with tab3:
     
     elif master_df is not None:
         st.markdown("---")
-        st.subheader("🔍 단일 Microsoft Part No. 수기 비교")
+        #st.subheader("🔍 단일 Microsoft Part No. 수기 비교")
 
         if "compare_results" not in st.session_state:
             st.session_state.compare_results = []
