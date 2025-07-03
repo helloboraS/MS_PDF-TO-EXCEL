@@ -415,6 +415,10 @@ with tab4:
             columns_to_export = [
                 "Item Number", "Microsoft Part No.", "Part Description",
                 "Ordered Qty", "Shipped Qty", "UM", "Unit Price", "Amount",
+                "HS Code", "요건비대상", "Country of Origin"
+            ]
+                "Item Number", "Microsoft Part No.", "Part Description",
+                "Ordered Qty", "Shipped Qty", "UM", "Unit Price", "Amount",
                 "HS Code", "요건비대상"
             ]
             final_to_export = final[columns_to_export]
