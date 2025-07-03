@@ -173,12 +173,10 @@ with tab3:
 
     master_df = st.session_state.get("master_df")
 
-    def clean_code(text):
-    if not isinstance(text, str):
-        return ""
-    text = re.sub(r"[‐‑‒–—−]", "-", text)  # 특수 하이픈 통일
-    text = re.sub(r"[^A-Za-z0-9]", "", text)  # 특수문자 제거
-    return text.upper():
+    def clean_code(code):
+        return str(code).strip().replace("-", "")
+        
+    def fix_hscode(code):
         try:
             code_str = str(code)
             if code_str.endswith(".0"):
@@ -313,6 +311,15 @@ if master_df is None:
 
 
 
+def clean_code(text):
+    if not isinstance(text, str):
+        return ""
+    text = re.sub(r"[‐‑‒–—−]", "-", text)  # 특수 하이픈 통일
+    text = re.sub(r"[^A-Za-z0-9]", "", text)  # 특수문자 제거
+    return text.upper()
+
+
+
 with tab4:
     st.header("📕 MS1279-WESCO 인보이스 추출 (Item No + Description 매칭)")
     uploaded_file = st.file_uploader("WESCO 인보이스 PDF 업로드", type=["pdf"], key="wesco_bbox_descmerge")
@@ -339,11 +346,11 @@ with tab4:
             return lines
 
         def clean_code(text):
-    if not isinstance(text, str):
-        return ""
-    text = re.sub(r"[‐‑‒–—−]", "-", text)  # 특수 하이픈 통일
-    text = re.sub(r"[^A-Za-z0-9]", "", text)  # 특수문자 제거
-    return text.upper() as pdf:
+            return re.sub(r"[^A-Za-z0-9]", "", str(text)).upper()
+
+        extracted_rows = []
+
+        with pdfplumber.open(temp_pdf_path) as pdf:
             for page in pdf.pages:
                 words = page.extract_words(use_text_flow=True, keep_blank_chars=True)
                 lines = group_words_by_line(words)
@@ -391,7 +398,15 @@ with tab4:
             final["Microsoft Part No."] = final["Microsoft Part No."].fillna("신규코드")
             final["Part Description"] = final["Part Description"].fillna(final["Description"])
 
-            st.dataframe(final[[
+            
+    final["matched_by_item"] = final["clean_item"] == final["clean_code"]
+    final["matched_by_desc"] = final["clean_desc"] == final["clean_desc"]
+
+    st.dataframe(final[[
+        "Item Number", "Description", "clean_item", "clean_desc", "clean_code",
+        "Microsoft Part No.", "Part Description", "matched_by_item", "matched_by_desc",
+    ] + [
+
                 "Item Number", "Microsoft Part No.", "Part Description",
                 "Ordered Qty", "Shipped Qty", "UM", "Unit Price", "Amount",
                 "HS Code", "요건비대상"
