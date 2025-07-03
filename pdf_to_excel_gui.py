@@ -412,10 +412,10 @@ with tab4:
                 "HS Code", "요건비대상"
             ]])
 # 최종 저장 열 명시적으로 지정 → clean_ 열 완전 제외
-            columns_to_export = [
-                "Item Number", "Microsoft Part No.", "Part Description",
-                "Ordered Qty", "Shipped Qty", "UM", "Unit Price", "Amount",
-                "HS Code", "요건비대상", "Country of Origin"
+columns_to_export = [
+    "Item Number", "Microsoft Part No.", "Part Description",
+    "Ordered Qty", "Shipped Qty", "UM", "Unit Price", "Amount",
+    "HS Code", "요건비대상", "Country of Origin"
 ]
                 "Item Number", "Microsoft Part No.", "Part Description",
                 "Ordered Qty", "Shipped Qty", "UM", "Unit Price", "Amount",
