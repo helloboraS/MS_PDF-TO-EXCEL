@@ -308,3 +308,89 @@ with tab3:
 if master_df is None:
         st.warning("⚠️ 마스터 파일이 없습니다. 최초 1회 업로드가 필요합니다.")
 
+
+
+
+with tab4:
+    st.header("📕 MS1279-WESCO 인보이스 추출")
+    uploaded_file = st.file_uploader("WESCO 인보이스 PDF 업로드", type=["pdf"], key="wesco_pdf")
+    if uploaded_file:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+            tmp_file.write(uploaded_file.read())
+            temp_pdf_path = tmp_file.name
+
+        extracted_records = []
+        with pdfplumber.open(temp_pdf_path) as pdf:
+            for page in pdf.pages:
+                lines = page.extract_text().split("\n")
+                for i in range(len(lines)):
+                    line = lines[i]
+                    if "Customer item:" in line and "MSF-" in line:
+                        try:
+                            part_no = line.split("MSF-")[-1].strip()
+                            ms_part_no = "MSF-" + part_no.split()[0]
+
+                            # 위 줄에서 Item 정보 추출
+                            item_line = lines[i-2] if i >= 2 else ""
+                            desc_line = lines[i-1] if i >= 1 else ""
+
+                            item_parts = item_line.strip().split()
+                            if len(item_parts) >= 6:
+                                item_number = item_parts[0]
+                                ordered_qty = item_parts[2]
+                                shipped_qty = item_parts[3]
+                                unit = item_parts[4]
+                                unit_price = item_parts[5]
+                                amount = item_parts[7] if len(item_parts) > 7 else ""
+
+                                description = desc_line.strip()
+
+                                # Export Code 줄
+                                j = i + 1
+                                export_code = ""
+                                origin = ""
+                                weight = ""
+                                warehouse = ""
+                                for offset in range(1, 4):
+                                    if i + offset < len(lines):
+                                        next_line = lines[i + offset]
+                                        if "Export Code:" in next_line:
+                                            tokens = next_line.replace("Export Code:", "").strip().split()
+                                            export_code = tokens[0] if len(tokens) > 0 else ""
+                                            origin = tokens[2] if len(tokens) > 2 else ""
+                                        if "Weight:" in next_line:
+                                            weight = next_line.split("Weight:")[-1].split()[0]
+                                        if "Warehouse" in next_line:
+                                            warehouse = next_line.split(":")[-1].strip()
+                                extracted_records.append({
+                                    "Item Number": item_number,
+                                    "Part Description": description,
+                                    "Microsoft Part No.": ms_part_no,
+                                    "Ordered Qty": ordered_qty,
+                                    "Shipped Qty": shipped_qty,
+                                    "Unit": unit,
+                                    "Unit Price": unit_price,
+                                    "Amount": amount,
+                                    "COO": origin,
+                                    "Export Code": export_code,
+                                    "Weight": weight,
+                                    "Warehouse": warehouse
+                                })
+                        except Exception:
+                            continue
+        os.remove(temp_pdf_path)
+        if extracted_records:
+            wesco_df = pd.DataFrame(extracted_records)
+            st.dataframe(wesco_df)
+
+            excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
+            wesco_df.to_excel(excel_file.name, index=False, sheet_name="WESCO_INVOICE")
+
+            with open(excel_file.name, "rb") as f:
+                st.download_button(
+                    label="📥 WESCO 엑셀 다운로드",
+                    data=f,
+                    file_name="wesco_invoice_data.xlsx"
+                )
+        else:
+            st.warning("PDF에서 항목을 추출할 수 없습니다. 형식을 다시 확인해주세요.")
