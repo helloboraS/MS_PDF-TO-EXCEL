@@ -109,11 +109,11 @@ with tab1:
             with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
                 for name, df in all_data.items():
                     df.to_excel(writer, sheet_name=name, index=False)
-            with open(excel_file.name, "rb") as f:
-                st.download_button(
-                    label="📥 MS1056 엑셀 다운로드",
-                    data=f,
-                    file_name="ms1056_data.xlsx"
+        with open(excel_file.name, "rb") as f:
+        st.download_button(
+        label="📥 MS1056 엑셀 다운로드",
+        data=f,
+        file_name="ms1056_data.xlsx"
                 )
 
 with tab2:
@@ -165,11 +165,11 @@ with tab2:
         "Model No": merged["Model No"]
         })
         filtered_df.to_excel(writer, sheet_name="신고서용", index=False)
-            with open(excel_file.name, "rb") as f:
-                st.download_button(
-                    label="📥 MS1279-PAYMENTS 엑셀 다운로드",
-                    data=f,
-                    file_name="ms1279_payments_data.xlsx"
+        with open(excel_file.name, "rb") as f:
+        st.download_button(
+        label="📥 MS1279-PAYMENTS 엑셀 다운로드",
+        data=f,
+        file_name="ms1279_payments_data.xlsx"
                 )
 
     with tab3:
@@ -252,10 +252,10 @@ with tab2:
             safety_req.to_excel(writer, index=False, sheet_name="전안요건")
 
         with open(to_excel.name, "rb") as f:
-            st.download_button(
-                label="📥 비교 결과 엑셀 다운로드",
-                data=f,
-                file_name="MS5673_신고.xlsx"
+        st.download_button(
+        label="📥 비교 결과 엑셀 다운로드",
+        data=f,
+        file_name="MS5673_신고.xlsx"
             )
     elif master_df is None:
         st.warning("⚠️ 마스터 파일이 없습니다. 최초 1회 업로드가 필요합니다.")
