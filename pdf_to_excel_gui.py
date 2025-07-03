@@ -312,7 +312,7 @@ if master_df is None:
 
 
 with tab4:
-    st.header("📕 MS1279-WESCO 인보이스 추출 (Item No + Description 매칭)")
+    #st.header("📕 MS1279-WESCO 인보이스 추출 (Item No + Description 매칭)")
     uploaded_file = st.file_uploader("WESCO 인보이스 PDF 업로드", type=["pdf"], key="wesco_bbox_descmerge")
     if uploaded_file and "master_df" in st.session_state:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
@@ -400,9 +400,9 @@ with tab4:
 
             with open(excel_file.name, "rb") as f:
                 st.download_button(
-                    label="📥 Item/Description 기준 매칭 엑셀 다운로드",
+                    label="엑셀 다운로드",
                     data=f,
-                    file_name="wesco_invoice_fallback_match.xlsx"
+                    file_name="wesco_invoice.xlsx"
                 )
         else:
             st.warning("유효한 데이터를 추출할 수 없습니다.")
