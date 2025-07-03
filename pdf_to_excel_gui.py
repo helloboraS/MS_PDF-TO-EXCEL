@@ -86,7 +86,7 @@ def extract_format_b(pdf_path):
         if uploaded_files_a:
         all_data = {}
         for uploaded_file in uploaded_files_a:
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
         tmp_file.write(uploaded_file.read())
         temp_pdf_path = tmp_file.name
         df = extract_format_a(temp_pdf_path)
@@ -115,7 +115,7 @@ def extract_format_b(pdf_path):
         if uploaded_files_b:
         all_data = {}
         for uploaded_file in uploaded_files_b:
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
         tmp_file.write(uploaded_file.read())
         temp_pdf_path = tmp_file.name
         df = extract_format_b(temp_pdf_path)
