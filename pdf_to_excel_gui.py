@@ -408,3 +408,32 @@ with tab4:
             st.warning("유효한 데이터를 추출할 수 없습니다.")
     elif "master_df" not in st.session_state:
         st.warning("MASTER_MS5673.xlsx 파일이 로드되지 않았습니다. 먼저 마스터 파일을 탭3에서 업로드하세요.")
+
+    # Export Code & COO 추출
+    export_codes = []
+    coos = []
+
+    for line in lines:
+        export_match = re.search(r"Export Code:\s*([\d\.]+)", line)
+        coo_match = re.search(r"Origin:\s*([A-Za-z]+)", line)
+
+        if export_match:
+            export_codes.append(export_match.group(1))
+        else:
+            export_codes.append("")
+
+        if coo_match:
+            coos.append(coo_match.group(1))
+        else:
+            coos.append("")
+
+    # 리스트 길이 조절 (항목 수와 안 맞으면 빈값으로 패딩)
+    max_len = len(extracted_data)
+    export_codes += [""] * (max_len - len(export_codes))
+    coos += [""] * (max_len - len(coos))
+
+    for i in range(max_len):
+        extracted_data[i]["Export Code"] = export_codes[i]
+        extracted_data[i]["COO"] = coos[i]
+
+
