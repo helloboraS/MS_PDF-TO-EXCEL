@@ -9,7 +9,9 @@ def extract_format_a(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             lines = page.extract_text().split("\n")
-            for line in lines:
+        for line in lines:
+            if not isinstance(line, str):
+                continue
     if not isinstance(line, str):
         continue
                 parts = line.split()
@@ -162,7 +164,7 @@ with tab2:
 
 with tab3:
 
-
+    
     # st.header("📒 마스터 데이터 비교")
 
     if "master_df" not in st.session_state:
@@ -177,7 +179,7 @@ with tab3:
 
     def clean_code(code):
         return str(code).strip().replace("-", "")
-
+        
     def fix_hscode(code):
         try:
             code_str = str(code)
@@ -191,13 +193,13 @@ with tab3:
         input_df = pd.read_excel(uploaded_excel)
         master_df = master_df.rename(columns=lambda x: x.strip())
         input_df = input_df.rename(columns=lambda x: x.strip())
-
+        
         input_df["Microsoft Part No."] = input_df["Microsoft Part No."].astype(str).str.strip()
         master_df["Microsoft Part No."] = master_df["Microsoft Part No."].astype(str).str.strip()
-
+        
         merged = input_df.merge(master_df, how="left", on="Microsoft Part No.")
         merged["INV HS"] = merged["INV HS"].apply(clean_code)
-
+        
 
 
         merged["HS Code"] = merged["HS Code"].apply(clean_code).apply(fix_hscode)
@@ -247,7 +249,7 @@ with tab3:
                 data=f,
                 file_name="MS5673_신고.xlsx"
             )
-
+    
     elif master_df is not None:
         st.markdown("---")
         #st.subheader("🔍 단일 Microsoft Part No. 수기 비교")
@@ -415,7 +417,9 @@ with tab4:
     export_codes = []
     coos = []
 
-    for line in lines:
+        for line in lines:
+            if not isinstance(line, str):
+                continue
     if not isinstance(line, str):
         continue
         export_match = re.search(r"Export Code:\s*([\d\.]+)", line)
