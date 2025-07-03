@@ -312,9 +312,9 @@ if master_df is None:
 
 
 with tab4:
-    st.header("📕 MS1279-WESCO 인보이스 추출 (정식 열 이름 포함)")
-    uploaded_file = st.file_uploader("WESCO 인보이스 PDF 업로드", type=["pdf"], key="wesco_bbox_named")
-    if uploaded_file:
+    st.header("📕 MS1279-WESCO 인보이스 추출 (MASTER 매핑 포함)")
+    uploaded_file = st.file_uploader("WESCO 인보이스 PDF 업로드", type=["pdf"], key="wesco_bbox_merge")
+    if uploaded_file and "master_df" in st.session_state:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
             tmp_file.write(uploaded_file.read())
             temp_pdf_path = tmp_file.name
@@ -352,23 +352,42 @@ with tab4:
         os.remove(temp_pdf_path)
 
         if extracted_rows:
-            # 최대 8열 기준 맞춤
             headers = [
                 "Item Number", "Description", "Ordered Qty",
                 "Shipped Qty", "UM", "Unit Price", "Per", "Amount"
             ]
             norm_rows = [row + [""] * (8 - len(row)) for row in extracted_rows if len(row) <= 8]
-            df = pd.DataFrame(norm_rows, columns=headers)
-            st.dataframe(df)
+            wesco_df = pd.DataFrame(norm_rows, columns=headers)
+
+            # 정제된 Item 코드 생성
+            wesco_df["clean_item"] = wesco_df["Item Number"].str.replace(r"[-\s]", "", regex=True).str.upper()
+
+            master_df = st.session_state["master_df"].copy()
+            master_df["clean_code"] = master_df["Microsoft Part No."].astype(str).str.replace(r"[-\s]", "", regex=True).str.upper()
+
+            merged = wesco_df.merge(master_df, left_on="clean_item", right_on="clean_code", how="left")
+
+            # 정식 Microsoft Part No.로 대체
+            merged["Microsoft Part No."] = merged["Microsoft Part No._y"].fillna("신규코드")
+            merged["Part Description (MASTER)"] = merged["Part Description"]
+            merged["Part Description"] = merged["Part Description_y"].fillna(merged["Description"])
+
+            st.dataframe(merged[[
+                "Item Number", "Microsoft Part No.", "Part Description",
+                "Ordered Qty", "Shipped Qty", "UM", "Unit Price", "Amount",
+                "HS Code", "전파인증번호", "전기인증번호", "모델명", "기관", "정격전압"
+            ]])
 
             excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
-            df.to_excel(excel_file.name, index=False, sheet_name="WESCO_CLEAN")
+            merged.to_excel(excel_file.name, index=False, sheet_name="WESCO_MASTER_MERGED")
 
             with open(excel_file.name, "rb") as f:
                 st.download_button(
-                    label="📥 WESCO 엑셀 다운로드 (정식 열)",
+                    label="📥 MASTER 매핑 포함 엑셀 다운로드",
                     data=f,
-                    file_name="wesco_invoice_named.xlsx"
+                    file_name="wesco_invoice_with_master.xlsx"
                 )
         else:
             st.warning("유효한 데이터를 추출할 수 없습니다.")
+    elif "master_df" not in st.session_state:
+        st.warning("MASTER_MS5673.xlsx 파일이 로드되지 않았습니다. 먼저 마스터 파일을 탭3에서 업로드하세요.")
