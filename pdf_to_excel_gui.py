@@ -11,8 +11,10 @@ def extract_format_a(pdf_path):
             lines = page.extract_text().split("\n")
             for line in lines:
                 if not isinstance(line, str):
+    continue
                 continue
                     if not isinstance(line, str):
+    continue
                     continue
                         parts = line.split()
                         if len(parts) >= 12 and parts[2].isdigit() and parts[-4].isdigit():
@@ -419,8 +421,10 @@ def extract_format_a(pdf_path):
 
                                                                                                                                                                                                                                                                                     for line in lines:
                                                                                                                                                                                                                                                                                         if not isinstance(line, str):
+    continue
                                                                                                                                                                                                                                                                                         continue
                                                                                                                                                                                                                                                                                             if not isinstance(line, str):
+    continue
                                                                                                                                                                                                                                                                                             continue
                                                                                                                                                                                                                                                                                                 export_match = re.search(r"Export Code:\s*([\d\.]+)", line)
                                                                                                                                                                                                                                                                                                 coo_match = re.search(r"Origin:\s*([A-Za-z]+)", line)
