@@ -419,7 +419,15 @@ with tab4:
                     if item.strip() in line:
                         # 이 아이템 아래 모든 줄에서 origin 찾기
                         origin_val = "미확인"
-                        for next_line in lines_by_page[idx:]:  # ← 끝까지 검색
+                        \1
+                match_export = re.search(r"Export\s*Code\s*[:：]?\s*([\d\.\-]+)", next_line, re.IGNORECASE)
+                match_hs = re.search(r"HS\s*Code\s*[:：]?\s*([\d\.\-]+)", next_line, re.IGNORECASE)
+                if match_export:
+                    export_val = match_export.group(1)
+                    break
+                elif match_hs:
+                    export_val = match_hs.group(1)
+                    break
                             match = re.search(r"(?:COO|Origin):\s*(\S+)", next_line)
                             if match:
                                 origin_val = match.group(1)
@@ -433,7 +441,15 @@ with tab4:
                 for item in item_list:
                     if item.strip() in line:
                         export_val = "미확인"
-                        for next_line in lines_by_page[idx:]:
+                        \1
+                match_export = re.search(r"Export\s*Code\s*[:：]?\s*([\d\.\-]+)", next_line, re.IGNORECASE)
+                match_hs = re.search(r"HS\s*Code\s*[:：]?\s*([\d\.\-]+)", next_line, re.IGNORECASE)
+                if match_export:
+                    export_val = match_export.group(1)
+                    break
+                elif match_hs:
+                    export_val = match_hs.group(1)
+                    break
                             match_export = re.search(r"Export\s*Code\s*[:：]?\s*([\d\.\-]+)", next_line, re.IGNORECASE)
                             match_hs = re.search(r"HS\s*Code\s*[:：]?\s*([\d\.\-]+)", next_line, re.IGNORECASE)
                             if match_export:
