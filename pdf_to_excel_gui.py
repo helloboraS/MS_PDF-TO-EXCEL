@@ -107,7 +107,6 @@ with tab1:
         if all_data:
             excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
             with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
-
     # MASTER DESC + ORIGIN 열 추가
     part_desc_map = {}
     if "master_df" in st.session_state:
@@ -122,7 +121,7 @@ with tab1:
             " ORIGIN: " + row["Country of Origin"],
         axis=1
     )
-                    for name, df in all_data.items():
+    for name, df in all_data.items():
                     df.to_excel(writer, sheet_name=name, index=False)
             with open(excel_file.name, "rb") as f:
                 st.download_button(
