@@ -428,28 +428,29 @@ with tab4:
 
             
             
-            # Export Code 및 HS Code 추출 - extract_words 기반으로 더 정확하게
+            # Export Code 및 HS Code 추출 - extract_words 기반 (두 단어 조합까지 대응)
             export_code_map = {}
             for page in pdf.pages:
                 words = page.extract_words()
                 for item in item_list:
                     export_val = "미확인"
-                    for i, word in enumerate(words):
-                        if item.strip().lower() in word["text"].strip().lower():
-                            for j in range(i, len(words)):
-                                t = words[j]["text"].strip().lower()
-                                if t in ["export", "export code", "hs", "hs code"]:
-                                    full_code = ""
-                                    k = j + 1
-                                    while k < len(words):
-                                        next_word = words[k]["text"].strip()
-                                        if re.match(r"^[\d\.\-]+$", next_word):
-                                            full_code += next_word
-                                            k += 1
-                                        else:
-                                            break
-                                    export_val = full_code if full_code else "미확인"
+                    for i in range(len(words) - 1):
+                        current_text = words[i]["text"].strip().lower()
+                        next_text = words[i + 1]["text"].strip().lower()
+                        combined = f"{current_text} {next_text}"
+
+                        if combined in ["export code", "hs code"]:
+                            # 오른쪽 단어부터 숫자 조합
+                            full_code = ""
+                            k = i + 2
+                            while k < len(words):
+                                next_word = words[k]["text"].strip()
+                                if re.match(r"^[\d\.\-]+$", next_word):
+                                    full_code += next_word
+                                    k += 1
+                                else:
                                     break
+                            export_val = full_code if full_code else "미확인"
                             break
                     export_code_map[item] = export_val
 
