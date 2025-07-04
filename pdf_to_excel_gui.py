@@ -405,28 +405,30 @@ with tab4:
             final["Country of Origin"] = current_origin
 
             final["Part Description"] = final["Part Description"].fillna(final["Description"])
-            # 원산지 추출: Item Number 기준 라인 이후 Origin / COO 포함 라인 검색
-            origin_map = {}
-
+            # 원산지 추출: Item Number별 최초 y좌표 기록 → 그 아래에서 Origin/COO 찾기
+            item_y_positions = {}
             item_list = wesco_df["Item Number"].dropna().unique().tolist()
 
             for y_key, line_words in sorted(lines.items()):
                 line_text = " ".join([w["text"] for w in line_words])
-
                 for item in item_list:
-                    if item in line_text:
-                        origin_val = None
-                        for look_y, look_words in sorted(lines.items()):
-                            if look_y <= y_key:
-                                continue  # 아래줄만
-                            line_joined = " ".join([w["text"] for w in look_words])
-                            match = re.search(r"(?:COO|Origin):\s*(\S+)", line_joined)
-                            if match:
-                                origin_val = match.group(1)
-                                break
-                        origin_map[item] = origin_val or "미확인"
+                    if item in line_text and item not in item_y_positions:
+                        item_y_positions[item] = y_key
 
-            # 매핑해서 적용
+            origin_map = {}
+            for item, y_pos in item_y_positions.items():
+                origin_val = None
+                for look_y, look_words in sorted(lines.items()):
+                    if look_y <= y_pos:
+                        continue
+                    line_joined = " ".join([w["text"] for w in look_words])
+                    match = re.search(r"(?:COO|Origin):\s*(\S+)", line_joined)
+                    if match:
+                        origin_val = match.group(1)
+                        break
+                origin_map[item] = origin_val or "미확인"
+
+            # 매핑 적용
             final["Country of Origin"] = final["Item Number"].map(origin_map).fillna("미확인")
 
             st.dataframe(final[[
