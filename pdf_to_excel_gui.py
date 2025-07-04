@@ -477,6 +477,9 @@ with tab4:
 ]
             final_to_export = final[columns_to_export]
 
+            # 엑셀 저장 - Export Code 포함 확인
+            print("Export Code 열 포함 여부:", "Export Code" in final_to_export.columns)
+
             excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
             with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
                 final_to_export.to_excel(writer, index=False, sheet_name="WESCO_MERGED")
