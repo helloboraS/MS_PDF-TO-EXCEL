@@ -444,7 +444,7 @@ with tab4:
             "Thailand": "TH",
             "Germany": "DE",
         }
-        final["Country of Origin"] = final["Country of Origin"].map(lambda x: country_code_map.get(x.strip(), x.strip()))
+        final["Country of Origin"] = final["Country of Origin"].map(lambda x: country_code_map.get(str(x).strip(), str(x).strip()))
     , x.strip()))
 
             st.dataframe(final[[
