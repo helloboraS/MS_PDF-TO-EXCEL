@@ -427,35 +427,32 @@ with tab4:
                         origin_map[item] = origin_val
 
             
-            
-            # Export Code 및 HS Code 추출 - extract_words 기반 (두 단어 조합까지 대응)
+            # Export Code 추출
             export_code_map = {}
-            for page in pdf.pages:
-                words = page.extract_words()
+            for idx, line in enumerate(lines_by_page):
                 for item in item_list:
-                    export_val = "미확인"
-                    for i in range(len(words) - 1):
-                        current_text = words[i]["text"].strip().lower()
-                        next_text = words[i + 1]["text"].strip().lower()
-                        combined = f"{current_text} {next_text}"
-
-                        if combined in ["export code", "hs code"]:
-                            # 오른쪽 단어부터 숫자 조합
-                            full_code = ""
-                            k = i + 2
-                            while k < len(words):
-                                next_word = words[k]["text"].strip()
-                                if re.match(r"^[\d\.\-]+$", next_word):
-                                    full_code += next_word
-                                    k += 1
-                                else:
-                                    break
-                            export_val = full_code if full_code else "미확인"
-                            break
-                    export_code_map[item] = export_val
+                    if item.strip() in line:
+                        export_val = "미확인"
+                        for next_line in lines_by_page[idx:]:
+                            merged_line = next_line.strip()
+                            if idx + 1 < len(lines_by_page):
+                                merged_line += " " + lines_by_page[idx + 1].strip()
+                            if idx + 2 < len(lines_by_page):
+                                merged_line += " " + lines_by_page[idx + 2].strip()
+                            
+                            
+                            
+                            match_export = re.search(r"Export\s*Code\s*[:：]?\s*([\d\.\-]+)", merged_line, re.IGNORECASE)
+                            match_hs = re.search(r"HS\s*Code\s*[:：]?\s*([\d\.\-]+)", merged_line, re.IGNORECASE)
+                            if match_export:
+                                export_val = match_export.group(1)
+                                break
+                            elif match_hs:
+                                export_val = match_hs.group(1)
+                                break
+                        export_code_map[item] = export_val
 
             final["Export Code"] = final["Item Number"].map(export_code_map).fillna("미확인")
-
 
 # origin_map을 final에 적용
             final["Country of Origin"] = final["Item Number"].map(origin_map).fillna("미확인")
