@@ -405,15 +405,14 @@ with tab4:
             final["Country of Origin"] = current_origin
 
             final["Part Description"] = final["Part Description"].fillna(final["Description"])
-            # 줄 단위 origin 추출
+            # 줄 단위 origin 추출 (pdf 재오픈 없이)
             origin_map = {}
             item_list = wesco_df["Item Number"].dropna().unique().tolist()
 
-            lines_by_page = []
-            with pdfplumber.open(temp_pdf_path) as pdf:
-                for page in pdf.pages:
-                    lines = page.extract_text().split("\n")
-                    lines_by_page.extend(lines)
+            lines_by_page = []  # ← 기존 페이지 처리 중 수집된 라인들 사용
+
+            for page in pdf.pages:
+                lines_by_page.extend(page.extract_text().split("\n"))
 
             for idx, line in enumerate(lines_by_page):
                 for item in item_list:
