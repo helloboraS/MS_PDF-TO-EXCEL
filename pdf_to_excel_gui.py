@@ -434,8 +434,8 @@ with tab4:
                     if item.strip() in line:
                         export_val = "미확인"
                         for next_line in lines_by_page[idx:]:
-                            match_export = re.search(r"Export\s*Code\s*[:：]?\s*(\d+)", next_line, re.IGNORECASE)
-                            match_hs = re.search(r"HS\s*Code\s*[:：]?\s*(\d+)", line, re.IGNORECASE)
+                            match_export = re.search(r"Export\s*Code\s*[:：]?\s*([\d\.\-]+)", next_line, re.IGNORECASE)
+                            match_hs = re.search(r"HS\s*Code\s*[:：]?\s*([\d\.\-]+)", next_line, re.IGNORECASE)
                             if match_export:
                                 export_val = match_export.group(1)
                                 break
