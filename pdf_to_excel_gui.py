@@ -465,7 +465,7 @@ with tab4:
                 invoice_sheet = pd.DataFrame({
                     "HS Code": final["HS Code"],
                     "Part Description": final["Part Description"] + ' ORIGIN:' + final["Country of Origin"],
-                    "Microsoft Part No.": "PART NO: " + final["Microsoft Part No."],
+                    "Microsoft Part No.": "ITEM NO: " + final["Microsoft Part No."],
                     "수량": final["Shipped Qty"],
                     "단위": final["UM"],
                     "단가": final["Unit Price"],
