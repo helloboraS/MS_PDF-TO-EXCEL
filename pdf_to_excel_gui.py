@@ -127,7 +127,6 @@ with tab1:
                 data=f,
                 file_name="wesco_invoice.xlsx"
             )
-                    file_name="ms1056_data.xlsx"
                 )
 
 with tab2:
