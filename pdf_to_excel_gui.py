@@ -174,7 +174,7 @@ with open(excel_file.name, "rb") as f:
 
 with tab3:
 
-    
+
     # st.header("📒 마스터 데이터 비교")
 
     if "master_df" not in st.session_state:
@@ -189,7 +189,7 @@ with tab3:
 
     def clean_code(code):
         return str(code).strip().replace("-", "")
-        
+
     def fix_hscode(code):
         try:
             code_str = str(code)
@@ -203,13 +203,13 @@ with tab3:
         input_df = pd.read_excel(uploaded_excel)
         master_df = master_df.rename(columns=lambda x: x.strip())
         input_df = input_df.rename(columns=lambda x: x.strip())
-        
+
         input_df["Microsoft Part No."] = input_df["Microsoft Part No."].astype(str).str.strip()
         master_df["Microsoft Part No."] = master_df["Microsoft Part No."].astype(str).str.strip()
-        
+
         merged = input_df.merge(master_df, how="left", on="Microsoft Part No.")
         merged["INV HS"] = merged["INV HS"].apply(clean_code)
-        
+
 
 
         merged["HS Code"] = merged["HS Code"].apply(clean_code).apply(fix_hscode)
@@ -259,7 +259,7 @@ with tab3:
                 data=f,
                 file_name="MS5673_신고.xlsx"
             )
-    
+
     elif master_df is not None:
         st.markdown("---")
         #st.subheader("🔍 단일 Microsoft Part No. 수기 비교")
@@ -465,7 +465,7 @@ with tab4:
             ]])
 # 최종 저장 열 명시적으로 지정 → clean_ 열 완전 제외
             columns_to_export = [
- 
+
                 "Item Number", "Microsoft Part No.", "Part Description",
                 "Ordered Qty", "Shipped Qty", "UM", "Unit Price", "Amount",
                 "HS Code", "요건비대상", "Country of Origin"
