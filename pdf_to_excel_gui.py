@@ -109,7 +109,7 @@ with tab1:
             with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
                 for name, df in all_data.items():
                     df.to_excel(writer, sheet_name=name, index=False)
-            with open(excel_file.name, "rb") as f:
+with open(excel_file.name, "rb") as f:
                 st.download_button(
                     label="📥 MS1056 엑셀 다운로드",
                     data=f,
@@ -151,7 +151,7 @@ with tab2:
                     "Model No": merged_df["Model No"]
                 })
                 filtered_df.to_excel(writer, sheet_name="신고서용", index=False)
-            with open(excel_file.name, "rb") as f:
+with open(excel_file.name, "rb") as f:
                 st.download_button(
                     label="📥 MS1279-PAYMENTS 엑셀 다운로드",
                     data=f,
