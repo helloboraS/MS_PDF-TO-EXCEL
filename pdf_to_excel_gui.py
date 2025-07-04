@@ -489,6 +489,5 @@ with open(excel_file.name, "rb") as f:
         file_name="wesco_invoice.xlsx"
     )
 
-        else:
-        st.warning("유효한 데이터를 추출할 수 없습니다.")
-        st.warning("MASTER_MS5673.xlsx 파일이 로드되지 않았습니다. 먼저 마스터 파일을 탭3에서 업로드하세요.")
+
+    st.warning("MASTER_MS5673.xlsx 파일이 로드되지 않았습니다. 먼저 마스터 파일을 탭3에서 업로드하세요.")
