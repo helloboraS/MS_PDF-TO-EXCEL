@@ -336,7 +336,23 @@ with tab4:
                     lines[y_center].append(word)
             return lines
 
-        def clean_code(text):
+
+        def extract_export_code_from_lines(lines):
+            export_map = {}
+            current_item = None
+            for idx, line in enumerate(lines):
+                if re.search(r"\bWES[-\w]+\b", line):
+                    current_item = re.search(r"\bWES[-\w]+\b", line).group()
+                if current_item:
+                    for j in range(idx, min(idx + 5, len(lines))):
+                        line_lower = lines[j].lower()
+                        match = re.search(r"(export code|hs code)[:：]?\s*([\d\.]+)", line_lower)
+                        if match:
+                            export_map[current_item] = match.group(2)
+                            break
+                    current_item = None
+            return export_map
+                def clean_code(text):
             return re.sub(r"[^A-Za-z0-9]", "", str(text)).upper()
 
         extracted_rows = []
@@ -373,7 +389,7 @@ with tab4:
 
             # 병합 (1차: item 기준)
             columns_to_pull = [
-                "Microsoft Part No.", "Part Description", "HS Code", "요건비대상", "clean_code", "clean_desc"
+                "HS Code", "Export Code",
             ]
             merged_by_item = wesco_df.merge(master_df[columns_to_pull], left_on="clean_item", right_on="clean_code", how="left", suffixes=("", "_item"))
 
@@ -382,7 +398,7 @@ with tab4:
 
             # 보완: item 병합 우선, 없으면 desc 병합 결과 채움
             final = merged_by_item.copy()
-            for col in ["Microsoft Part No.", "Part Description", "HS Code", "요건비대상"]:
+                "HS Code", "Export Code",
                 final[col] = final[col].fillna(merged_by_desc[col])
 
             # 누락된 항목 처리
@@ -428,6 +444,8 @@ with tab4:
 
             # origin_map을 final에 적용
             final["Country of Origin"] = final["Item Number"].map(origin_map).fillna("미확인")
+            export_code_map = extract_export_code_from_lines(lines_by_page)
+            final["Export Code"] = final["Item Number"].map(export_code_map).fillna("미확인")
 
             # 원산지 2자리 코드로 변환
             origin_abbrev = {
@@ -447,14 +465,14 @@ with tab4:
             st.dataframe(final[[
                 "Item Number", "Microsoft Part No.", "Part Description",
                 "Ordered Qty", "Shipped Qty", "UM", "Unit Price", "Amount",
-                "HS Code", "요건비대상"
+                "HS Code", "Export Code",
             ]])
 # 최종 저장 열 명시적으로 지정 → clean_ 열 완전 제외
             columns_to_export = [
  
                 "Item Number", "Microsoft Part No.", "Part Description",
                 "Ordered Qty", "Shipped Qty", "UM", "Unit Price", "Amount",
-                "HS Code", "요건비대상", "Country of Origin"
+                "HS Code", "Export Code",
             ]
             final_to_export = final[columns_to_export]
 
