@@ -426,7 +426,27 @@ with tab4:
                                 break
                         origin_map[item] = origin_val
 
-            # origin_map을 final에 적용
+            
+            # Export Code 추출
+            export_code_map = {}
+            for idx, line in enumerate(lines_by_page):
+                for item in item_list:
+                    if item.strip() in line:
+                        export_val = "미확인"
+                        for next_line in lines_by_page[idx:]:
+                            match_export = re.search(r"Export\s*Code\s*[:：]?\s*([\d\.\-]+)", next_line, re.IGNORECASE)
+                            match_hs = re.search(r"HS\s*Code\s*[:：]?\s*([\d\.\-]+)", next_line, re.IGNORECASE)
+                            if match_export:
+                                export_val = match_export.group(1)
+                                break
+                            elif match_hs:
+                                export_val = match_hs.group(1)
+                                break
+                        export_code_map[item] = export_val
+
+            final["Export Code"] = final["Item Number"].map(export_code_map).fillna("미확인")
+
+# origin_map을 final에 적용
             final["Country of Origin"] = final["Item Number"].map(origin_map).fillna("미확인")
 
             # 원산지 2자리 코드로 변환
@@ -451,11 +471,10 @@ with tab4:
             ]])
 # 최종 저장 열 명시적으로 지정 → clean_ 열 완전 제외
             columns_to_export = [
- 
-                "Item Number", "Microsoft Part No.", "Part Description",
-                "Ordered Qty", "Shipped Qty", "UM", "Unit Price", "Amount",
-                "HS Code", "요건비대상", "Country of Origin"
-            ]
+    "Item Number", "Microsoft Part No.", "Part Description",
+    "Ordered Qty", "Shipped Qty", "UM", "Unit Price", "Amount",
+    "HS Code", "요건비대상", "Country of Origin", "Export Code"
+]
             final_to_export = final[columns_to_export]
 
             excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
