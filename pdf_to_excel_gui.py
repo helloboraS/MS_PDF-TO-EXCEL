@@ -406,22 +406,35 @@ with tab4:
 
             final["Part Description"] = final["Part Description"].fillna(final["Description"])
 
-# Country of Origin 라인별 추출 추가
-origin_list = []
-for _, line_words in sorted(lines.items()):
-    line_words.sort(key=lambda w: w["x0"])
-    line_text = " ".join([w["text"] for w in line_words])
-    match = re.search(r"(?:COO|Origin):\s*(\S+)", line_text)
-    if match:
-        origin_list.append(match.group(1))
-    else:
-        origin_list.append("미확인")  # 또는 빈 값 "", 또는 None
+# 원산지 라인별 y좌표 매칭
+origin_candidates = [
+    {"text": w["text"], "y": (w["top"] + w["bottom"]) / 2}
+    for w in words if "COO:" in w["text"] or "Origin:" in w["text"]
+]
 
-# origin_list 길이 조절
-while len(origin_list) < len(final):
-    origin_list.append("미확인")
+origin_for_rows = []
+for row in final.itertuples():
+    row_item = getattr(row, "Item Number", None)
+    row_y = None
+    for word in words:
+        if word["text"] == row_item:
+            row_y = (word["top"] + word["bottom"]) / 2
+            break
 
-final["Country of Origin"] = origin_list[:len(final)]
+    closest_origin = "미확인"
+    if row_y:
+        min_diff = float("inf")
+        for origin in origin_candidates:
+            diff = abs(origin["y"] - row_y)
+            if diff < min_diff:
+                min_diff = diff
+                match = re.search(r"(?:COO|Origin):\s*(\S+)", origin["text"])
+                if match:
+                    closest_origin = match.group(1)
+    origin_for_rows.append(closest_origin)
+
+final["Country of Origin"] = origin_for_rows
+
 
             st.dataframe(final[[
                 "Item Number", "Microsoft Part No.", "Part Description",
