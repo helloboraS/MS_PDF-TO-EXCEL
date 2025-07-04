@@ -405,36 +405,34 @@ with tab4:
             final["Country of Origin"] = current_origin
 
             final["Part Description"] = final["Part Description"].fillna(final["Description"])
+    # 원산지 라인별 y좌표 매칭
+    origin_candidates = [
+        {"text": w["text"], "y": (w["top"] + w["bottom"]) / 2}
+        for w in words if "COO:" in w["text"] or "Origin:" in w["text"]
+    ]
 
-# 원산지 라인별 y좌표 매칭
-origin_candidates = [
-    {"text": w["text"], "y": (w["top"] + w["bottom"]) / 2}
-    for w in words if "COO:" in w["text"] or "Origin:" in w["text"]
-]
+    origin_for_rows = []
+    for row in final.itertuples():
+        row_item = getattr(row, "Item Number", None)
+        row_y = None
+        for word in words:
+            if word["text"] == row_item:
+                row_y = (word["top"] + word["bottom"]) / 2
+                break
 
-origin_for_rows = []
-for row in final.itertuples():
-    row_item = getattr(row, "Item Number", None)
-    row_y = None
-    for word in words:
-        if word["text"] == row_item:
-            row_y = (word["top"] + word["bottom"]) / 2
-            break
+        closest_origin = "미확인"
+        if row_y:
+            min_diff = float("inf")
+            for origin in origin_candidates:
+                diff = abs(origin["y"] - row_y)
+                if diff < min_diff:
+                    min_diff = diff
+                    match = re.search(r"(?:COO|Origin):\s*(\S+)", origin["text"])
+                    if match:
+                        closest_origin = match.group(1)
+        origin_for_rows.append(closest_origin)
 
-    closest_origin = "미확인"
-    if row_y:
-        min_diff = float("inf")
-        for origin in origin_candidates:
-            diff = abs(origin["y"] - row_y)
-            if diff < min_diff:
-                min_diff = diff
-                match = re.search(r"(?:COO|Origin):\s*(\S+)", origin["text"])
-                if match:
-                    closest_origin = match.group(1)
-    origin_for_rows.append(closest_origin)
-
-final["Country of Origin"] = origin_for_rows
-
+    final["Country of Origin"] = origin_for_rows
 
             st.dataframe(final[[
                 "Item Number", "Microsoft Part No.", "Part Description",
