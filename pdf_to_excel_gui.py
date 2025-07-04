@@ -405,11 +405,11 @@ with tab4:
             final["Country of Origin"] = current_origin
 
             final["Part Description"] = final["Part Description"].fillna(final["Description"])
-            # 줄 단위 origin 추출 (끝까지 탐색)
+            # 줄 단위 origin 추출 (대소문자 무시 + 붙은 것도 포함)
             origin_map = {}
             item_list = wesco_df["Item Number"].dropna().unique().tolist()
 
-            lines_by_page = []  # ← 기존 페이지 처리 중 수집된 라인들 사용
+            lines_by_page = []
 
             for page in pdf.pages:
                 lines_by_page.extend(page.extract_text().split("\n"))
@@ -417,16 +417,14 @@ with tab4:
             for idx, line in enumerate(lines_by_page):
                 for item in item_list:
                     if item.strip() in line:
-                        # 이 아이템 아래 모든 줄에서 origin 찾기
                         origin_val = "미확인"
-                        for next_line in lines_by_page[idx:]:  # ← 끝까지 검색
-                            match = re.search(r"(?:COO|Origin):\s*(\S+)", next_line)
+                        for next_line in lines_by_page[idx:]:  # 끝까지 탐색
+                            match = re.search(r"(?:COO|Origin):\s*(\S+)", next_line, re.IGNORECASE)
                             if match:
                                 origin_val = match.group(1)
                                 break
                         origin_map[item] = origin_val
 
-            # origin_map을 final에 적용
             final["Country of Origin"] = final["Item Number"].map(origin_map).fillna("미확인")
 
             st.dataframe(final[[
