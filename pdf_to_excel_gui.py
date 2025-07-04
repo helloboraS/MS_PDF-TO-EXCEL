@@ -426,27 +426,26 @@ with tab4:
                                 break
                         origin_map[item] = origin_val
 
-            # origin_map을 final에 적용
-            final["Country of Origin"] = final["Item Number"].map(origin_map).fillna("미확인")
+            
+        # origin_map을 final에 적용
+        final["Country of Origin"] = final["Item Number"].map(origin_map).fillna("미확인")
 
-# origin_map을 final에 적용
-final["Country of Origin"] = final["Item Number"].map(origin_map).fillna("미확인")
-
-# 원산지 국가명을 코드로 변환
-country_code_map = {
-    "China": "CN",
-    "Vietnam": "VN",
-    "United States": "US",
-    "USA": "US",
-    "Korea": "KR",
-    "Republic of Korea": "KR",
-    "Taiwan": "TW",
-    "Japan": "JP",
-    "Malaysia": "MY",
-    "Thailand": "TH",
-    "Germany": "DE",
-}
-final["Country of Origin"] = final["Country of Origin"].map(lambda x: country_code_map.get(x.strip(), x.strip()))
+        # 원산지 국가명을 코드로 변환
+        country_code_map = {
+            "China": "CN",
+            "Vietnam": "VN",
+            "United States": "US",
+            "USA": "US",
+            "Korea": "KR",
+            "Republic of Korea": "KR",
+            "Taiwan": "TW",
+            "Japan": "JP",
+            "Malaysia": "MY",
+            "Thailand": "TH",
+            "Germany": "DE",
+        }
+        final["Country of Origin"] = final["Country of Origin"].map(lambda x: country_code_map.get(x.strip(), x.strip()))
+    , x.strip()))
 
             st.dataframe(final[[
                 "Item Number", "Microsoft Part No.", "Part Description",
