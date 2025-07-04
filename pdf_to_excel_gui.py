@@ -405,30 +405,28 @@ with tab4:
             final["Country of Origin"] = current_origin
 
             final["Part Description"] = final["Part Description"].fillna(final["Description"])
-            # 줄 단위 origin 추출 (콜론 있어도 없어도 OK, ECCN 방지 포함)
+            # 줄 단위 origin 추출 (끝까지 탐색)
             origin_map = {}
             item_list = wesco_df["Item Number"].dropna().unique().tolist()
 
-            lines_by_page = []
+            lines_by_page = []  # ← 기존 페이지 처리 중 수집된 라인들 사용
 
             for page in pdf.pages:
                 lines_by_page.extend(page.extract_text().split("\n"))
 
             for idx, line in enumerate(lines_by_page):
                 for item in item_list:
-                    if re.search(rf'\\b{re.escape(item)}\\b', line):  # 정확한 Item Number 매칭
+                    if item.strip() in line:
+                        # 이 아이템 아래 모든 줄에서 origin 찾기
                         origin_val = "미확인"
-                        for next_line in lines_by_page[idx:]:
-                            if "COO" in next_line.upper() or "ORIGIN" in next_line.upper():
-                                match = re.search(r"(?:COO|Origin)\s*:?\s*(\S+)", next_line, re.IGNORECASE)
-                                if match:
-                                    result = match.group(1).rstrip(",.;")
-                                    if result.upper().startswith("ECCN"):
-                                        continue
-                                    origin_val = result
-                                    break
+                        for next_line in lines_by_page[idx:]:  # ← 끝까지 검색
+                            match = re.search(r"(?:COO|Origin):\s*(\S+)", next_line)
+                            if match:
+                                origin_val = match.group(1)
+                                break
                         origin_map[item] = origin_val
 
+            # origin_map을 final에 적용
             final["Country of Origin"] = final["Item Number"].map(origin_map).fillna("미확인")
 
             st.dataframe(final[[
