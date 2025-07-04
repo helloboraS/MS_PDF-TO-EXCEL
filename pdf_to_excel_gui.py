@@ -483,6 +483,7 @@ with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
     invoice_sheet.to_excel(writer, sheet_name="신고서", index=False)
 
 if extracted_rows:
+    excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
     with open(excel_file.name, "rb") as f:
         st.download_button(
             label="엑셀 다운로드",
