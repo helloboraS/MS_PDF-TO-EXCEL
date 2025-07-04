@@ -121,13 +121,7 @@ with tab1:
             })
             invoice_sheet.to_excel(writer, sheet_name="신고서", index=False)
 
-        with open(excel_file.name, "rb") as f:
-            st.download_button(
-                label="엑셀 다운로드",
-                data=f,
-                file_name="wesco_invoice.xlsx"
-            )
-                )
+        
 
 with tab2:
     uploaded_files_b = st.file_uploader("MS1279 PDF Upload", type=["pdf"], accept_multiple_files=True, key="b")
