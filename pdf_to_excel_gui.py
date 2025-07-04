@@ -107,6 +107,20 @@ with tab1:
         if all_data:
             excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
             with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
+    # MASTER DESC + ORIGIN 열 추가
+    part_desc_map = {}
+    if "master_df" in st.session_state:
+        master_df = st.session_state["master_df"]
+        master_df["Microsoft Part No."] = master_df["Microsoft Part No."].astype(str).str.strip()
+        part_desc_map = master_df.set_index("Microsoft Part No.")["Part Description"].to_dict()
+
+    filtered_df["MASTER DESC + ORIGIN"] = filtered_df.apply(
+        lambda row: 
+            part_desc_map.get(row["Microsoft Part No."], "") +
+            (" MODEL: " + row["Model No"] if row["Model No"] != "NA" else "") +
+            " ORIGIN: " + row["Country of Origin"],
+        axis=1
+    )
 
     # MASTER DESC + ORIGIN 열 추가
     part_desc_map = {}
