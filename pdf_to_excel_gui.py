@@ -429,6 +429,21 @@ with tab4:
             # origin_map을 final에 적용
             final["Country of Origin"] = final["Item Number"].map(origin_map).fillna("미확인")
 
+            # 원산지 2자리 코드로 변환
+            origin_abbrev = {
+                "china": "CN",
+                "cn": "CN",
+                "vietnam": "VN",
+                "vn": "VN",
+                "korea": "KR",
+                "kr": "KR",
+                "taiwan": "TW",
+                "tw": "TW",
+                "thailand": "TH",
+                "th": "TH"
+            }
+            final["Country of Origin"] = final["Country of Origin"].str.lower().map(origin_abbrev).fillna("미확인")
+
             st.dataframe(final[[
                 "Item Number", "Microsoft Part No.", "Part Description",
                 "Ordered Qty", "Shipped Qty", "UM", "Unit Price", "Amount",
