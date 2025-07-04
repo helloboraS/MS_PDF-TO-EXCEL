@@ -405,34 +405,29 @@ with tab4:
             final["Country of Origin"] = current_origin
 
             final["Part Description"] = final["Part Description"].fillna(final["Description"])
-            # 원산지 라인별 y좌표 매칭
-            origin_candidates = [
-                {"text": w["text"], "y": (w["top"] + w["bottom"]) / 2}
-                for w in words if "COO:" in w["text"] or "Origin:" in w["text"]
-            ]
+            # 원산지 추출: Item Number 기준 라인 이후 Origin / COO 포함 라인 검색
+            origin_map = {}
 
-            origin_for_rows = []
-            for row in final.itertuples():
-                row_item = getattr(row, "Item Number", None)
-                row_y = None
-                for word in words:
-                    if word["text"] == row_item:
-                        row_y = (word["top"] + word["bottom"]) / 2
-                        break
+            item_list = wesco_df["Item Number"].dropna().unique().tolist()
 
-                closest_origin = "미확인"
-                if row_y:
-                    min_diff = float("inf")
-                    for origin in origin_candidates:
-                        diff = abs(origin["y"] - row_y)
-                        if diff < min_diff:
-                            min_diff = diff
-                            match = re.search(r"(?:COO|Origin):\s*(\S+)", origin["text"])
+            for y_key, line_words in sorted(lines.items()):
+                line_text = " ".join([w["text"] for w in line_words])
+
+                for item in item_list:
+                    if item in line_text:
+                        origin_val = None
+                        for look_y, look_words in sorted(lines.items()):
+                            if look_y <= y_key:
+                                continue  # 아래줄만
+                            line_joined = " ".join([w["text"] for w in look_words])
+                            match = re.search(r"(?:COO|Origin):\s*(\S+)", line_joined)
                             if match:
-                                closest_origin = match.group(1)
-                origin_for_rows.append(closest_origin)
+                                origin_val = match.group(1)
+                                break
+                        origin_map[item] = origin_val or "미확인"
 
-            final["Country of Origin"] = origin_for_rows
+            # 매핑해서 적용
+            final["Country of Origin"] = final["Item Number"].map(origin_map).fillna("미확인")
 
             st.dataframe(final[[
                 "Item Number", "Microsoft Part No.", "Part Description",
