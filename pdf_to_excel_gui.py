@@ -406,6 +406,23 @@ with tab4:
 
             final["Part Description"] = final["Part Description"].fillna(final["Description"])
 
+# Country of Origin 라인별 추출 추가
+origin_list = []
+for _, line_words in sorted(lines.items()):
+    line_words.sort(key=lambda w: w["x0"])
+    line_text = " ".join([w["text"] for w in line_words])
+    match = re.search(r"(?:COO|Origin):\s*(\S+)", line_text)
+    if match:
+        origin_list.append(match.group(1))
+    else:
+        origin_list.append("미확인")  # 또는 빈 값 "", 또는 None
+
+# origin_list 길이 조절
+while len(origin_list) < len(final):
+    origin_list.append("미확인")
+
+final["Country of Origin"] = origin_list[:len(final)]
+
             st.dataframe(final[[
                 "Item Number", "Microsoft Part No.", "Part Description",
                 "Ordered Qty", "Shipped Qty", "UM", "Unit Price", "Amount",
