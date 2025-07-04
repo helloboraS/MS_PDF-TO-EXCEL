@@ -363,6 +363,7 @@ with tab4:
         os.remove(temp_pdf_path)
 
         if extracted_rows:
+    excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
             headers = [
                 "Item Number", "Description", "Ordered Qty",
                 "Shipped Qty", "UM", "Unit Price", "Per", "Amount"
@@ -465,7 +466,6 @@ with tab4:
             ]
             final_to_export = final[columns_to_export]
 
-            excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
 with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
     final_to_export.to_excel(writer, index=False, sheet_name="WESCO_MERGED")
 
@@ -483,7 +483,6 @@ with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
     invoice_sheet.to_excel(writer, sheet_name="신고서", index=False)
 
 if extracted_rows:
-    excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
     with open(excel_file.name, "rb") as f:
         st.download_button(
             label="엑셀 다운로드",
