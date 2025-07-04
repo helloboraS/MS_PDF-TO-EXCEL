@@ -405,7 +405,7 @@ with tab4:
             final["Country of Origin"] = current_origin
 
             final["Part Description"] = final["Part Description"].fillna(final["Description"])
-            # 줄 단위 origin 추출 (pdf 재오픈 없이)
+            # 줄 단위 origin 추출 (끝까지 탐색)
             origin_map = {}
             item_list = wesco_df["Item Number"].dropna().unique().tolist()
 
@@ -417,9 +417,9 @@ with tab4:
             for idx, line in enumerate(lines_by_page):
                 for item in item_list:
                     if item.strip() in line:
-                        # 이 아이템 아래 줄에서 origin 찾기
+                        # 이 아이템 아래 모든 줄에서 origin 찾기
                         origin_val = "미확인"
-                        for next_line in lines_by_page[idx:idx+10]:  # 최대 10줄 안에서 찾기
+                        for next_line in lines_by_page[idx:]:  # ← 끝까지 검색
                             match = re.search(r"(?:COO|Origin):\s*(\S+)", next_line)
                             if match:
                                 origin_val = match.group(1)
