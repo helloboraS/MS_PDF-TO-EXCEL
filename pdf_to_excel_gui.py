@@ -50,7 +50,6 @@ def extract_format_b(pdf_path):
                     delivery_no = line1[1]
                     msf_index = next(j for j, p in enumerate(line1) if p.startswith("MSF-"))
                     manufacturer_part_no = " ".join(line1[2:msf_index])
-                    msf_index = next(j for j, p in enumerate(line1) if p.startswith("MSF-"))
                     ms_part_no = line1[msf_index]
 
                     model_no = line2[2] if len(line2) > 2 else "NA"
@@ -104,25 +103,27 @@ with tab1:
             all_data[sheet_name] = df
             st.subheader(f"{sheet_name}")
             st.dataframe(df)
+
         if all_data:
             excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
             with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
-    # MASTER DESC + ORIGIN 열 추가
-    part_desc_map = {}
-    if "master_df" in st.session_state:
-        master_df = st.session_state["master_df"]
-        master_df["Microsoft Part No."] = master_df["Microsoft Part No."].astype(str).str.strip()
-        part_desc_map = master_df.set_index("Microsoft Part No.")["Part Description"].to_dict()
+                # MASTER DESC + ORIGIN 열 추가용 매핑 생성
+                part_desc_map = {}
+                if "master_df" in st.session_state:
+                    master_df = st.session_state["master_df"]
+                    master_df["Microsoft Part No."] = master_df["Microsoft Part No."].astype(str).str.strip()
+                    part_desc_map = master_df.set_index("Microsoft Part No.")["Part Description"].to_dict()
 
-    filtered_df["MASTER DESC + ORIGIN"] = filtered_df.apply(
-        lambda row: 
-            part_desc_map.get(row["Microsoft Part No."], "") +
-            (" MODEL: " + row["Model No"] if row["Model No"] != "NA" else "") +
-            " ORIGIN: " + row["Country of Origin"],
-        axis=1
-    )
-    for name, df in all_data.items():
+                for name, df in all_data.items():
+                    df["MASTER DESC + ORIGIN"] = df.apply(
+                        lambda row: 
+                            part_desc_map.get(row["Microsoft Part No."], "") +
+                            (" MODEL: " + row["Model No"] if row["Model No"] != "NA" else "") +
+                            " ORIGIN: " + row["Country of Origin"],
+                        axis=1
+                    )
                     df.to_excel(writer, sheet_name=name, index=False)
+
             with open(excel_file.name, "rb") as f:
                 st.download_button(
                     label="📥 MS1056 엑셀 다운로드",
@@ -146,4 +147,12 @@ with tab2:
             st.dataframe(df)
         if all_data:
             excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
-            
+            with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
+                for name, df in all_data.items():
+                    df.to_excel(writer, sheet_name=name, index=False)
+            with open(excel_file.name, "rb") as f:
+                st.download_button(
+                    label="📥 MS1279 엑셀 다운로드",
+                    data=f,
+                    file_name="ms1279_data.xlsx"
+                )
