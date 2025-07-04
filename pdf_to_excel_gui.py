@@ -363,7 +363,7 @@ with tab4:
         os.remove(temp_pdf_path)
 
         if extracted_rows:
-    excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
+            excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
             headers = [
                 "Item Number", "Description", "Ordered Qty",
                 "Shipped Qty", "UM", "Unit Price", "Per", "Amount"
