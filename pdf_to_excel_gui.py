@@ -405,36 +405,30 @@ with tab4:
             final["Country of Origin"] = current_origin
 
             final["Part Description"] = final["Part Description"].fillna(final["Description"])
-            # 원산지 추출: final 각 행 기준으로 y좌표 매칭하여 origin 결정
-            origin_candidates = [
-                {"text": w["text"], "y": (w["top"] + w["bottom"]) / 2}
-                for w in words if "COO:" in w["text"] or "Origin:" in w["text"]
-            ]
+            # 줄 단위 origin 추출
+            origin_map = {}
+            item_list = wesco_df["Item Number"].dropna().unique().tolist()
 
-            origin_results = []
+            lines_by_page = []
+            with pdfplumber.open(temp_pdf_path) as pdf:
+                for page in pdf.pages:
+                    lines = page.extract_text().split("\n")
+                    lines_by_page.extend(lines)
 
-            for row in final.itertuples():
-                item = getattr(row, "Item Number", "")
-                row_y = None
-
-                for word in words:
-                    if item and item.strip().upper() in word["text"].strip().upper():
-                        row_y = (word["top"] + word["bottom"]) / 2
-                        break
-
-                closest_origin = "미확인"
-                if row_y:
-                    min_diff = float("inf")
-                    for origin in origin_candidates:
-                        diff = origin["y"] - row_y
-                        if diff > 0 and diff < min_diff:  # 아래쪽 origin만
-                            min_diff = diff
-                            match = re.search(r"(?:COO|Origin):\s*(\S+)", origin["text"])
+            for idx, line in enumerate(lines_by_page):
+                for item in item_list:
+                    if item.strip() in line:
+                        # 이 아이템 아래 줄에서 origin 찾기
+                        origin_val = "미확인"
+                        for next_line in lines_by_page[idx:idx+10]:  # 최대 10줄 안에서 찾기
+                            match = re.search(r"(?:COO|Origin):\s*(\S+)", next_line)
                             if match:
-                                closest_origin = match.group(1)
-                origin_results.append(closest_origin)
+                                origin_val = match.group(1)
+                                break
+                        origin_map[item] = origin_val
 
-            final["Country of Origin"] = origin_results
+            # origin_map을 final에 적용
+            final["Country of Origin"] = final["Item Number"].map(origin_map).fillna("미확인")
 
             st.dataframe(final[[
                 "Item Number", "Microsoft Part No.", "Part Description",
