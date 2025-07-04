@@ -459,7 +459,21 @@ with tab4:
             final_to_export = final[columns_to_export]
 
             excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
-            final_to_export.to_excel(excel_file.name, index=False, sheet_name="WESCO_MERGED")
+            with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
+                final_to_export.to_excel(writer, index=False, sheet_name="WESCO_MERGED")
+
+                invoice_sheet = pd.DataFrame({
+                    "HS Code": final["HS Code"],
+                    "Part Description": final["Part Description"] + ' ORIGIN:' + final["Country of Origin"],
+                    "Microsoft Part No.": "PART NO: " + final["Microsoft Part No."],
+                    "수량": final["Shipped Qty"],
+                    "단위": final["UM"],
+                    "단가": final["Unit Price"],
+                    "금액": final["Amount"],
+                    "Microsoft Part No. (원본)": final["Microsoft Part No."]
+                })
+
+                invoice_sheet.to_excel(writer, index=False, sheet_name="신고서")
 
             with open(excel_file.name, "rb") as f:
                 st.download_button(
