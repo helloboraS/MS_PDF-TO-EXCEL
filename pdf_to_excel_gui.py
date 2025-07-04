@@ -482,12 +482,12 @@ with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
     })
     invoice_sheet.to_excel(writer, sheet_name="신고서", index=False)
 
-with open(excel_file.name, "rb") as f:
-    st.download_button(
-        label="엑셀 다운로드",
-        data=f,
-        file_name="wesco_invoice.xlsx"
-    )
-
-
-    st.warning("MASTER_MS5673.xlsx 파일이 로드되지 않았습니다. 먼저 마스터 파일을 탭3에서 업로드하세요.")
+if extracted_rows:
+    with open(excel_file.name, "rb") as f:
+        st.download_button(
+            label="엑셀 다운로드",
+            data=f,
+            file_name="wesco_invoice.xlsx"
+        )
+else:
+    st.warning("유효한 데이터를 추출할 수 없습니다.")
