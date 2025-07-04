@@ -428,6 +428,34 @@ with tab4:
 
             # origin_map을 final에 적용
             final["Country of Origin"] = final["Item Number"].map(origin_map).fillna("미확인")
+            # PDF 기준 HS 코드 → INV HS
+            final["INV HS"] = final["HS Code"]
+
+            # MASTER 기준 HS 코드 병합
+            master_df = st.session_state["master_df"].copy()
+            master_df["clean_code"] = master_df["Microsoft Part No."].apply(clean_code)
+            final = final.merge(
+                master_df[["Microsoft Part No.", "HS Code"]],
+                on="Microsoft Part No.",
+                how="left",
+                suffixes=("", "_MASTER")
+            )
+
+            def clean_hs(code):
+                try:
+                    code = str(code).strip().replace("-", "")
+                    if code.endswith(".0"):
+                        code = code[:-2]
+                    return code.zfill(10)
+                except:
+                    return ""
+
+            final["INV HS"] = final["INV HS"].apply(clean_hs)
+            final["HS Code"] = final["HS Code"].apply(clean_hs)
+
+            final["HS10_MATCH"] = final.apply(lambda row: "O" if row["INV HS"][:10] == row["HS Code"][:10] else "X", axis=1)
+            final["HS6_MATCH"] = final.apply(lambda row: "O" if row["INV HS"][:6] == row["HS Code"][:6] else "X", axis=1)
+
             
             hs_map = {}
             for idx, line in enumerate(lines_by_page):
@@ -475,6 +503,12 @@ with tab4:
             ]])
 # 최종 저장 열 명시적으로 지정 → clean_ 열 완전 제외
             columns_to_export = [
+
+                "Item Number", "Microsoft Part No.", "Part Description",
+                "Ordered Qty", "Shipped Qty", "UM", "Unit Price", "Amount",
+                "INV HS", "HS Code", "HS10_MATCH", "HS6_MATCH",
+                "요건비대상", "Country of Origin"
+            ]
  
                 "Item Number", "Microsoft Part No.", "Part Description",
                 "Ordered Qty", "Shipped Qty", "UM", "Unit Price", "Amount",
