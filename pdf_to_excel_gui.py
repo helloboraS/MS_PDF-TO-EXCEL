@@ -136,7 +136,23 @@ with tab2:
                 for name, df in all_data.items():
                     df.to_excel(writer, sheet_name=name, index=False)
                 merged_df = pd.concat(all_data.values(), ignore_index=True)
-                filtered_df = pd.DataFrame({
+                
+        # MASTER DESC + ORIGIN 열 추가
+        part_desc_map = {}
+        if "master_df" in st.session_state:
+            master_df = st.session_state["master_df"]
+            master_df["Microsoft Part No."] = master_df["Microsoft Part No."].astype(str).str.strip()
+            part_desc_map = master_df.set_index("Microsoft Part No.")["Part Description"].to_dict()
+
+        filtered_df["MASTER DESC + ORIGIN"] = filtered_df.apply(
+            lambda row: 
+                part_desc_map.get(row["Microsoft Part No."], "") +
+                (" MODEL: " + row["Model No"] if row["Model No"] != "NA" else "") +
+                " ORIGIN: " + row["Country of Origin"],
+            axis=1
+        )
+
+filtered_df = pd.DataFrame({
                     "HS CODE": merged_df["HTS Code"],
                     "DESC + ORIGIN": merged_df.apply(
                         lambda row: row["Part Description"]
