@@ -405,7 +405,7 @@ with tab4:
             final["Country of Origin"] = current_origin
 
             final["Part Description"] = final["Part Description"].fillna(final["Description"])
-            # 줄 단위 origin 추출 (대소문자 무시 + 붙은 것도 포함)
+            # 줄 단위 origin 추출 (ECCN 방지: 실제 COO/Origin 줄만 매칭)
             origin_map = {}
             item_list = wesco_df["Item Number"].dropna().unique().tolist()
 
@@ -419,10 +419,11 @@ with tab4:
                     if item.strip() in line:
                         origin_val = "미확인"
                         for next_line in lines_by_page[idx:]:  # 끝까지 탐색
-                            match = re.search(r"(?:COO|Origin):\s*(\S+)", next_line, re.IGNORECASE)
-                            if match:
-                                origin_val = match.group(1)
-                                break
+                            if "COO:" in next_line.upper() or "ORIGIN:" in next_line.upper():  # 필터링
+                                match = re.search(r"(?:COO|Origin):\s*(\S+)", next_line, re.IGNORECASE)
+                                if match:
+                                    origin_val = match.group(1)
+                                    break
                         origin_map[item] = origin_val
 
             final["Country of Origin"] = final["Item Number"].map(origin_map).fillna("미확인")
