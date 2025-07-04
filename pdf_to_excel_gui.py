@@ -405,31 +405,36 @@ with tab4:
             final["Country of Origin"] = current_origin
 
             final["Part Description"] = final["Part Description"].fillna(final["Description"])
-            # 원산지 추출: Item Number별 최초 y좌표 기록 → 그 아래에서 Origin/COO 찾기
-            item_y_positions = {}
-            item_list = wesco_df["Item Number"].dropna().unique().tolist()
+            # 원산지 추출: final 각 행 기준으로 y좌표 매칭하여 origin 결정
+            origin_candidates = [
+                {"text": w["text"], "y": (w["top"] + w["bottom"]) / 2}
+                for w in words if "COO:" in w["text"] or "Origin:" in w["text"]
+            ]
 
-            for y_key, line_words in sorted(lines.items()):
-                line_text = " ".join([w["text"] for w in line_words])
-                for item in item_list:
-                    if item in line_text and item not in item_y_positions:
-                        item_y_positions[item] = y_key
+            origin_results = []
 
-            origin_map = {}
-            for item, y_pos in item_y_positions.items():
-                origin_val = None
-                for look_y, look_words in sorted(lines.items()):
-                    if look_y <= y_pos:
-                        continue
-                    line_joined = " ".join([w["text"] for w in look_words])
-                    match = re.search(r"(?:COO|Origin):\s*(\S+)", line_joined)
-                    if match:
-                        origin_val = match.group(1)
+            for row in final.itertuples():
+                item = getattr(row, "Item Number", "")
+                row_y = None
+
+                for word in words:
+                    if item and item.strip().upper() in word["text"].strip().upper():
+                        row_y = (word["top"] + word["bottom"]) / 2
                         break
-                origin_map[item] = origin_val or "미확인"
 
-            # 매핑 적용
-            final["Country of Origin"] = final["Item Number"].map(origin_map).fillna("미확인")
+                closest_origin = "미확인"
+                if row_y:
+                    min_diff = float("inf")
+                    for origin in origin_candidates:
+                        diff = origin["y"] - row_y
+                        if diff > 0 and diff < min_diff:  # 아래쪽 origin만
+                            min_diff = diff
+                            match = re.search(r"(?:COO|Origin):\s*(\S+)", origin["text"])
+                            if match:
+                                closest_origin = match.group(1)
+                origin_results.append(closest_origin)
+
+            final["Country of Origin"] = origin_results
 
             st.dataframe(final[[
                 "Item Number", "Microsoft Part No.", "Part Description",
