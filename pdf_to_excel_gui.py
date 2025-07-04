@@ -106,22 +106,15 @@ with tab1:
             st.dataframe(df)
         if all_data:
             excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
-        with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
-            final_to_export.to_excel(writer, index=False, sheet_name="WESCO_MERGED")
-            # 두 번째 시트: 신고서용 포맷
-            invoice_sheet = pd.DataFrame({
-                "HS Code": final["HS Code"],
-                "Part Description": final["Part Description"] + " ORIGIN:" + final["Country of Origin"],
-                "PART NO.": "PART NO: " + final["Microsoft Part No."],
-                "Q'TY": final["Shipped Qty"],
-                "UOM": final["UM"],
-                "UNIT PRICE": final["Unit Price"],
-                "TOTAL AMOUNT": final["Amount"],
-                "PART NO. FULL": final["Microsoft Part No."]
-            })
-            invoice_sheet.to_excel(writer, sheet_name="신고서", index=False)
-
-        
+            with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
+                for name, df in all_data.items():
+                    df.to_excel(writer, sheet_name=name, index=False)
+            with open(excel_file.name, "rb") as f:
+                st.download_button(
+                    label="📥 MS1056 엑셀 다운로드",
+                    data=f,
+                    file_name="ms1056_data.xlsx"
+                )
 
 with tab2:
     uploaded_files_b = st.file_uploader("MS1279 PDF Upload", type=["pdf"], accept_multiple_files=True, key="b")
@@ -158,7 +151,7 @@ with tab2:
                     "Model No": merged_df["Model No"]
                 })
                 filtered_df.to_excel(writer, sheet_name="신고서용", index=False)
-with open(excel_file.name, "rb") as f:
+            with open(excel_file.name, "rb") as f:
                 st.download_button(
                     label="📥 MS1279-PAYMENTS 엑셀 다운로드",
                     data=f,
@@ -167,7 +160,7 @@ with open(excel_file.name, "rb") as f:
 
 with tab3:
 
-
+    
     # st.header("📒 마스터 데이터 비교")
 
     if "master_df" not in st.session_state:
@@ -182,7 +175,7 @@ with tab3:
 
     def clean_code(code):
         return str(code).strip().replace("-", "")
-
+        
     def fix_hscode(code):
         try:
             code_str = str(code)
@@ -196,13 +189,13 @@ with tab3:
         input_df = pd.read_excel(uploaded_excel)
         master_df = master_df.rename(columns=lambda x: x.strip())
         input_df = input_df.rename(columns=lambda x: x.strip())
-
+        
         input_df["Microsoft Part No."] = input_df["Microsoft Part No."].astype(str).str.strip()
         master_df["Microsoft Part No."] = master_df["Microsoft Part No."].astype(str).str.strip()
-
+        
         merged = input_df.merge(master_df, how="left", on="Microsoft Part No.")
         merged["INV HS"] = merged["INV HS"].apply(clean_code)
-
+        
 
 
         merged["HS Code"] = merged["HS Code"].apply(clean_code).apply(fix_hscode)
@@ -252,7 +245,7 @@ with tab3:
                 data=f,
                 file_name="MS5673_신고.xlsx"
             )
-
+    
     elif master_df is not None:
         st.markdown("---")
         #st.subheader("🔍 단일 Microsoft Part No. 수기 비교")
@@ -363,7 +356,6 @@ with tab4:
         os.remove(temp_pdf_path)
 
         if extracted_rows:
-            excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
             headers = [
                 "Item Number", "Description", "Ordered Qty",
                 "Shipped Qty", "UM", "Unit Price", "Per", "Amount"
@@ -459,35 +451,23 @@ with tab4:
             ]])
 # 최종 저장 열 명시적으로 지정 → clean_ 열 완전 제외
             columns_to_export = [
-
+ 
                 "Item Number", "Microsoft Part No.", "Part Description",
                 "Ordered Qty", "Shipped Qty", "UM", "Unit Price", "Amount",
                 "HS Code", "요건비대상", "Country of Origin"
             ]
             final_to_export = final[columns_to_export]
 
-with pd.ExcelWriter(excel_file.name, engine="openpyxl") as writer:
-    final_to_export.to_excel(writer, index=False, sheet_name="WESCO_MERGED")
+            excel_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
+            final_to_export.to_excel(excel_file.name, index=False, sheet_name="WESCO_MERGED")
 
-    # 두 번째 시트: 신고서용 포맷
-    invoice_sheet = pd.DataFrame({
-        "HS Code": final["HS Code"],
-        "Part Description": final["Part Description"] + " ORIGIN:" + final["Country of Origin"],
-        "PART NO.": "PART NO: " + final["Microsoft Part No."],
-        "Q'TY": final["Shipped Qty"],
-        "UOM": final["UM"],
-        "UNIT PRICE": final["Unit Price"],
-        "TOTAL AMOUNT": final["Amount"],
-        "PART NO. FULL": final["Microsoft Part No."]
-    })
-    invoice_sheet.to_excel(writer, sheet_name="신고서", index=False)
-
-if extracted_rows:
-    with open(excel_file.name, "rb") as f:
-        st.download_button(
-            label="엑셀 다운로드",
-            data=f,
-            file_name="wesco_invoice.xlsx"
-        )
-else:
-    st.warning("유효한 데이터를 추출할 수 없습니다.")
+            with open(excel_file.name, "rb") as f:
+                st.download_button(
+                    label="엑셀 다운로드",
+                    data=f,
+                    file_name="wesco_invoice.xlsx"
+                )
+        else:
+            st.warning("유효한 데이터를 추출할 수 없습니다.")
+    elif "master_df" not in st.session_state:
+        st.warning("MASTER_MS5673.xlsx 파일이 로드되지 않았습니다. 먼저 마스터 파일을 탭3에서 업로드하세요.")
