@@ -473,7 +473,17 @@ with tab4:
                 "in": "IN",
                 "us": "US",
                 "U.S.A": "US",
-                "United States of America":"US"
+                "United States of America":"US",
+                "ph": "PH",
+                "Philipines": "PH",
+                "Mexico": "MX",
+                "mx": "MX",
+                "JAPAN":"JP",    
+                "jp":"JP",        
+                "sg":"SG",    
+                "singapore":"SG",         
+                "GERMANY":"DE",    
+                "de":"DE",                  
                 
             }
             final["Country of Origin"] = final["Country of Origin"].str.lower().map(origin_abbrev).fillna("미확인")
