@@ -470,7 +470,10 @@ with tab4:
                 "thailand": "TH",
                 "th": "TH",
                 "india": "IN",
-                "in": "IN"
+                "in": "IN",
+                "us": "US",
+                "U.S.A": "US",
+                "United States of America":"US"
                 
             }
             final["Country of Origin"] = final["Country of Origin"].str.lower().map(origin_abbrev).fillna("미확인")
