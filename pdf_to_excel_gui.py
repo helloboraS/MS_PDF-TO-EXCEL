@@ -420,7 +420,7 @@ with tab4:
                         # 이 아이템 아래 모든 줄에서 origin 찾기
                         origin_val = "미확인"
                         for next_line in lines_by_page[idx:]:  # ← 끝까지 검색
-                            match = re.search(r"(?:COO|Origin):\s*(\S+)", next_line)
+                            match = re.search(r"(?:COO|Origin)\s*[:：]?\s*([A-Za-z]{2,})", next_line, re.IGNORECASE)
                             if match:
                                 origin_val = match.group(1)
                                 break
