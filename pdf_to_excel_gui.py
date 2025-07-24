@@ -150,19 +150,6 @@ with tab2:
                     "PART NO. FULL": merged_df["Microsoft Part No."] + " (" + merged_df["Manufacturer Part No."] + ")",
                     "Model No": merged_df["Model No"]
                 })
-                
-                # MASTER-DES 추가
-                master_df = st.session_state.get("master_df")
-                if master_df is not None:
-                    master_part_desc_map = master_df.set_index("Microsoft Part No.")["Part Description"].to_dict()
-                    filtered_df["MASTER-DES"] = merged_df.apply(
-                        lambda row: master_part_desc_map.get(row["Microsoft Part No."], "미확인")
-                        + (" MODEL: " + row["Model No"] if row["Model No"] != "NA" else "")
-                        + " ORIGIN: " + row["Country of Origin"], axis=1
-                    )
-                else:
-                    filtered_df["MASTER-DES"] = "미확인"
-
                 filtered_df.to_excel(writer, sheet_name="신고서용", index=False)
             with open(excel_file.name, "rb") as f:
                 st.download_button(
@@ -482,6 +469,9 @@ with tab4:
                 "tw": "TW",
                 "thailand": "TH",
                 "th": "TH"
+                "india": "IN",
+                "in": "IN"
+                
             }
             final["Country of Origin"] = final["Country of Origin"].str.lower().map(origin_abbrev).fillna("미확인")
 
